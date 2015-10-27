@@ -1,12 +1,32 @@
+# defrac
+###############
 *.class
+target/
+defrac.cfg
+defrac.phase
+defrac.bytecode
+defrac.jvm.dot
+defrac.ssa.dot
+.lastCompile
+
+# IntelliJ IDEA
+###############
+.idea/
+
+# OS
+###############
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # Mobile Tools for Java (J2ME)
+###############
 .mtj.tmp/
 
-# Package Files #
-*.jar
-*.war
-*.ear
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# VM crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+###############
 hs_err_pid*

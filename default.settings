@@ -1,0 +1,14 @@
+{
+  "name": "defrac Gaming",
+  "package": "defrac.gaming",
+  "version": "1.0",
+  
+  "main": "defrac.gaming.Main",
+  
+  "targets": [
+    "android",
+    "ios",
+    "jvm",
+    "web"
+  ]  
+}
