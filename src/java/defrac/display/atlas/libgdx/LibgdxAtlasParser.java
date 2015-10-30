@@ -55,9 +55,9 @@ final class LibgdxAtlasParser {
     do {
       final int token = nextToken();
 
-      if(token == LibgdxAtlasTokens.T_IDENTIFIER) {
+      if(token == T_IDENTIFIER) {
         pages.add(parsePage());
-      } else if(token == LibgdxAtlasTokens.T_EOF) {
+      } else if(token == T_EOF) {
         return pages;
       } else {
         unexpected(token);
@@ -70,7 +70,7 @@ final class LibgdxAtlasParser {
     final String pageName = scanner.stringValue();
     expect(T_LINETERMINATOR);
 
-    parsePair(LibgdxAtlasTokens.T_SIZE); // ignored
+    parsePair(T_SIZE); // ignored
     expect(T_LINETERMINATOR);
 
     final TextureDataFormat format = parseFormat();
@@ -85,7 +85,7 @@ final class LibgdxAtlasParser {
     final LibgdxAtlasPage page =
         new LibgdxAtlasPage(pageName, format, repeat, filter);
 
-    if(afterRepeat == LibgdxAtlasTokens.T_EOF) {
+    if(afterRepeat == T_EOF) {
       return page;
     } else if(afterRepeat != T_LINETERMINATOR) {
       unexpected(afterRepeat);
@@ -94,9 +94,9 @@ final class LibgdxAtlasParser {
     do {
       int token = nextToken();
 
-      if(token == T_LINETERMINATOR || token == LibgdxAtlasTokens.T_EOF) {
+      if(token == T_LINETERMINATOR || token == T_EOF) {
         break;
-      } else if(token != LibgdxAtlasTokens.T_IDENTIFIER) {
+      } else if(token != T_IDENTIFIER) {
         unexpected(token);
         break;
       }
@@ -116,23 +116,23 @@ final class LibgdxAtlasParser {
     final String name = scanner.stringValue();
     expect(T_LINETERMINATOR);
 
-    expectKey(LibgdxAtlasTokens.T_ROTATE);
+    expectKey(T_ROTATE);
     final boolean rotate = parseBoolean();
     expect(T_LINETERMINATOR);
 
-    parsePair(LibgdxAtlasTokens.T_XY);
+    parsePair(T_XY);
     final int x = _0;
     final int y = _1;
     expect(T_LINETERMINATOR);
 
-    parsePair(LibgdxAtlasTokens.T_SIZE);
+    parsePair(T_SIZE);
     final int width = _0;
     final int height = _1;
     expect(T_LINETERMINATOR);
 
     // split?
     token = nextToken();
-    if(token == LibgdxAtlasTokens.T_SPLIT) {
+    if(token == T_SPLIT) {
       // ignored
       while(token != T_LINETERMINATOR) {
         token = nextToken();
@@ -140,7 +140,7 @@ final class LibgdxAtlasParser {
     }
 
     // pad?
-    if(token == LibgdxAtlasTokens.T_PAD) {
+    if(token == T_PAD) {
       // ignored
       while(token != T_LINETERMINATOR) {
         token = nextToken();
@@ -159,17 +159,17 @@ final class LibgdxAtlasParser {
     }
     expect(T_LINETERMINATOR);
 
-    parsePair(LibgdxAtlasTokens.T_OFFSET);
+    parsePair(T_OFFSET);
     final int offsetX = _0;
     final int offsetY = _1;
     expect(T_LINETERMINATOR);
 
-    expectKey(LibgdxAtlasTokens.T_INDEX);
+    expectKey(T_INDEX);
     final int index = parseInt();
 
     token = nextToken();
 
-    if(token == LibgdxAtlasTokens.T_EOF) {
+    if(token == T_EOF) {
       return true;
     } else if(token != T_LINETERMINATOR) {
       unexpected(token);
@@ -190,15 +190,15 @@ final class LibgdxAtlasParser {
 
   @Nonnull
   private String parseIdentifier() {
-    expect(LibgdxAtlasTokens.T_IDENTIFIER);
+    expect(T_IDENTIFIER);
     return scanner.stringValue();
   }
 
   private boolean parseBoolean() {
     final int token = nextToken();
-    if(token == LibgdxAtlasTokens.T_TRUE) {
+    if(token == T_TRUE) {
       return true;
-    } else if(token == LibgdxAtlasTokens.T_FALSE) {
+    } else if(token == T_FALSE) {
       return false;
     } else {
       unexpected(token);
@@ -207,13 +207,13 @@ final class LibgdxAtlasParser {
   }
 
   private int parseInt() {
-    expect(LibgdxAtlasTokens.T_INTEGER);
+    expect(T_INTEGER);
     return Integer.parseInt(scanner.stringValue());
   }
 
   @Nonnull
   private TextureDataSmoothing parseFilter() {
-    expectKey(LibgdxAtlasTokens.T_FILTER);
+    expectKey(T_FILTER);
     final String minFilter = parseIdentifier();
     expect(T_COMMA);
     final String magFilter = parseIdentifier();
@@ -227,16 +227,16 @@ final class LibgdxAtlasParser {
 
   @Nonnull
   private TextureDataRepeat parseRepeat() {
-    expectKey(LibgdxAtlasTokens.T_REPEAT);
+    expectKey(T_REPEAT);
 
     final int token = nextToken();
 
-    if(token == LibgdxAtlasTokens.T_NONE) {
+    if(token == T_NONE) {
       return TextureDataRepeat.NO_REPEAT;
     }
 
-    boolean repeatX = token == LibgdxAtlasTokens.T_X || token == LibgdxAtlasTokens.T_XY;
-    boolean repeatY = token == LibgdxAtlasTokens.T_Y || token == LibgdxAtlasTokens.T_XY;
+    boolean repeatX = token == T_X || token == T_XY;
+    boolean repeatY = token == T_Y || token == T_XY;
 
     return TextureDataRepeat.valueOf(repeatX, repeatY);
   }
@@ -249,16 +249,16 @@ final class LibgdxAtlasParser {
   }
 
   private TextureDataFormat parseFormat() {
-    expectKey(LibgdxAtlasTokens.T_FORMAT);
+    expectKey(T_FORMAT);
 
     final int token = nextToken();
 
     switch(token) {
-      case LibgdxAtlasTokens.T_RGBA8888: return TextureDataFormat.RGBA;
-      case LibgdxAtlasTokens.T_RGB888: return TextureDataFormat.RGB;
-      case LibgdxAtlasTokens.T_RGBA4444:
-      case LibgdxAtlasTokens.T_RGB565:
-      case LibgdxAtlasTokens.T_ALPHA:
+      case T_RGBA8888: return TextureDataFormat.RGBA;
+      case T_RGB888: return TextureDataFormat.RGB;
+      case T_RGBA4444:
+      case T_RGB565:
+      case T_ALPHA:
         throw new UnsupportedOperationException("Unsupported texture format");
       default:
         throw new RuntimeException("Expected texture format, got "+token+'.'+positionToString());
@@ -275,7 +275,7 @@ final class LibgdxAtlasParser {
 
     do {
       actualToken = scanner.nextToken();
-    } while(actualToken == LibgdxAtlasTokens.T_WHITESPACE);
+    } while(actualToken == T_WHITESPACE);
 
     return actualToken;
   }
