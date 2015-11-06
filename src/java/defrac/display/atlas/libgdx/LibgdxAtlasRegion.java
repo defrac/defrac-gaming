@@ -48,15 +48,16 @@ final class LibgdxAtlasRegion {
                            final int originalWidth, final int originalHeight,
                            final int offsetX, final int offsetY,
                            final int index) {
+
     fields[F_X] = x;
     fields[F_Y] = y;
-    fields[F_ORIGINAL_WIDTH] = originalWidth;
-    fields[F_ORIGINAL_HEIGHT] = originalHeight;
+    fields[F_ORIGINAL_WIDTH] = rotate ? originalHeight : originalWidth;
+    fields[F_ORIGINAL_HEIGHT] = rotate ? originalWidth: originalHeight;
     fields[F_ROTATE] = rotate ? 1 : 0;
     fields[F_OFFSET_X] = offsetX;
     fields[F_OFFSET_Y] = offsetY;
-    fields[F_WIDTH] = width;
-    fields[F_HEIGHT] = height;
+    fields[F_WIDTH] = rotate ? height : width;
+    fields[F_HEIGHT] = rotate ? width : height;
     fields[F_INDEX] = index;
   }
 

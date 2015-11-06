@@ -18,10 +18,9 @@ package defrac.display.atlas.libgdx;
 import defrac.display.TextureDataFormat;
 import defrac.display.TextureDataRepeat;
 import defrac.display.TextureDataSmoothing;
-import defrac.lang.Lists;
+import defrac.util.Array;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 import static defrac.display.atlas.libgdx.LibgdxAtlasTokens.*;
 
@@ -29,6 +28,8 @@ import static defrac.display.atlas.libgdx.LibgdxAtlasTokens.*;
  *
  */
 final class LibgdxAtlasParser {
+  //TODO(joa): implement peek/poll and don't advance in nextToken
+
   @Nonnull
   public static LibgdxAtlasParser create(@Nonnull final LibgdxAtlasScanner scanner) {
     return new LibgdxAtlasParser(scanner);
@@ -44,7 +45,7 @@ final class LibgdxAtlasParser {
   }
 
   @Nonnull
-  public List<LibgdxAtlasPage> parseAtlas() {
+  public Array<LibgdxAtlasPage> parseAtlas() {
     // The LibGDX TextureAtlas format comes with a little disadvantage for us.
     // It goes like this:
     //
@@ -62,8 +63,7 @@ final class LibgdxAtlasParser {
     // additional memory resources like LibgdxAtlasPage and LibgdxAtlasRegion
     // which wouldn't be necessary if we'd know the files in advance.
 
-    final List<LibgdxAtlasPage> pages =
-        Lists.newArrayList(1);
+    final Array<LibgdxAtlasPage> pages = new Array<>(1);
 
     expect(T_LINETERMINATOR);
 
@@ -71,7 +71,7 @@ final class LibgdxAtlasParser {
       final int token = nextToken();
 
       if(token == T_IDENTIFIER) {
-        pages.add(parsePage());
+        pages.push(parsePage());
       } else if(token == T_EOF) {
         return pages;
       } else {
@@ -85,8 +85,17 @@ final class LibgdxAtlasParser {
     final String pageName = scanner.stringValue();
     expect(T_LINETERMINATOR);
 
-    parsePair(T_SIZE); // ignored
-    expect(T_LINETERMINATOR);
+    int token = nextToken();
+    if(token == T_SIZE) {
+      expect(T_COLON);
+      parseInt();
+      expect(T_COMMA);
+      parseInt();
+      expect(T_LINETERMINATOR);
+      expect(T_FORMAT);
+    } else {
+      expect(token, T_FORMAT);
+    }
 
     final TextureDataFormat format = parseFormat();
     expect(T_LINETERMINATOR);
@@ -107,7 +116,7 @@ final class LibgdxAtlasParser {
     }
 
     do {
-      int token = nextToken();
+      token = nextToken();
 
       if(token == T_LINETERMINATOR || token == T_EOF) {
         break;
@@ -264,7 +273,8 @@ final class LibgdxAtlasParser {
   }
 
   private TextureDataFormat parseFormat() {
-    expectKey(T_FORMAT);
+    // T_FORMAT is already in there
+    expect(T_COLON);
 
     final int token = nextToken();
 

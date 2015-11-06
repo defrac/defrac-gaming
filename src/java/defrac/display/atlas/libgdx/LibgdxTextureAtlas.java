@@ -22,13 +22,13 @@ import defrac.display.TextureData;
 import defrac.display.TextureDataSupply;
 import defrac.lang.Closeables;
 import defrac.resource.StringResource;
+import defrac.util.Array;
 
 import javax.annotation.Nonnull;
 import javax.annotation.WillNotClose;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,7 +65,7 @@ public final class LibgdxTextureAtlas {
                                           @Nonnull final TextureDataSupply supply) {
     final LibgdxAtlasScanner scanner = LibgdxAtlasScanner.create(reader);
     final LibgdxAtlasParser parser = LibgdxAtlasParser.create(scanner);
-    final List<LibgdxAtlasPage> listOfAtlasPages = parser.parseAtlas();
+    final Array<LibgdxAtlasPage> listOfAtlasPages = parser.parseAtlas();
 
     @SuppressWarnings("unchecked")
     final Future<TextureData>[] futuresOfTextureData = new Future[listOfAtlasPages.size()];
@@ -109,7 +109,7 @@ public final class LibgdxTextureAtlas {
                                    @Nonnull final Map<String, TextureData> supply) {
     final LibgdxAtlasScanner scanner = LibgdxAtlasScanner.create(reader);
     final LibgdxAtlasParser parser = LibgdxAtlasParser.create(scanner);
-    final List<LibgdxAtlasPage> listOfAtlasPages = parser.parseAtlas();
+    final Array<LibgdxAtlasPage> listOfAtlasPages = parser.parseAtlas();
     final TextureAtlas.Builder builder = TextureAtlas.newBuilder();
 
     for(final LibgdxAtlasPage page : listOfAtlasPages) {

@@ -19,6 +19,8 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Reader;
 
+import static defrac.display.atlas.libgdx.LibgdxAtlasTokens.*;
+
 /**
  *
  */
@@ -66,13 +68,13 @@ final class LibgdxAtlasScanner {
       final int c = nextChar();
 
       if(c == -1) {
-        return LibgdxAtlasTokens.T_EOF;
+        return T_EOF;
       } else if(isWhitespace(c)) {
         consumeWhitespace();
-        return LibgdxAtlasTokens.T_WHITESPACE;
+        return T_WHITESPACE;
       } else if(isLineTerminator(c)) {
         consumeLineTerminator();
-        return LibgdxAtlasTokens.T_LINETERMINATOR;
+        return T_LINETERMINATOR;
       } else if(isIdentifierStart(c)) {
         int potentialIdentifierPart;
 
@@ -85,10 +87,10 @@ final class LibgdxAtlasScanner {
         return identifierToKeyword();
       } else if(c == ',') {
         advance();
-        return LibgdxAtlasTokens.T_COMMA;
+        return T_COMMA;
       } else if(c == ':') {
         advance();
-        return LibgdxAtlasTokens.T_COLON;
+        return T_COLON;
       } else if(isIntegerStart(c)) {
         int potentialIntegerPart;
 
@@ -98,10 +100,10 @@ final class LibgdxAtlasScanner {
           advanceAndContinueBuffer(potentialIntegerPart);
         }
 
-        return LibgdxAtlasTokens.T_INTEGER;
+        return T_INTEGER;
       } else {
         recover();
-        return LibgdxAtlasTokens.T_ERROR;
+        return T_ERROR;
       }
     } catch(final IOException exception) {
       throw new RuntimeException(exception);
@@ -191,11 +193,11 @@ final class LibgdxAtlasScanner {
         final char c0 = valueBuffer[0];
 
         if(c0 == 'x') {
-          return LibgdxAtlasTokens.T_X;
+          return T_X;
         } else if(c0 == 'y') {
-          return LibgdxAtlasTokens.T_Y;
+          return T_Y;
         } else {
-          return LibgdxAtlasTokens.T_IDENTIFIER;
+          return T_IDENTIFIER;
         }
       }
 
@@ -204,9 +206,9 @@ final class LibgdxAtlasScanner {
         final char c1 = valueBuffer[1];
 
         if(c0 == 'x' && c1 == 'y') {
-          return LibgdxAtlasTokens.T_XY;
+          return T_XY;
         } else {
-          return LibgdxAtlasTokens.T_IDENTIFIER;
+          return T_IDENTIFIER;
         }
       }
 
@@ -216,9 +218,9 @@ final class LibgdxAtlasScanner {
         final char c2 = valueBuffer[2];
 
         if(c0 == 'p' && c1 == 'a' && c2 == 'd') {
-          return LibgdxAtlasTokens.T_PAD;
+          return T_PAD;
         } else {
-          return LibgdxAtlasTokens.T_IDENTIFIER;
+          return T_IDENTIFIER;
         }
       }
 
@@ -233,27 +235,27 @@ final class LibgdxAtlasScanner {
             c1 == 'i' &&
             c2 == 'z' &&
             c3 == 'e') {
-          return LibgdxAtlasTokens.T_SIZE;
+          return T_SIZE;
         } else if(
             c0 == 'o' &&
             c1 == 'r' &&
             c2 == 'i' &&
             c3 == 'g') {
-          return LibgdxAtlasTokens.T_ORIG;
+          return T_ORIG;
         } else if(
             c0 == 't' &&
             c1 == 'r' &&
             c2 == 'u' &&
             c3 == 'e') {
-          return LibgdxAtlasTokens.T_TRUE;
+          return T_TRUE;
         } else if(
             c0 == 'n' &&
             c1 == 'o' &&
             c2 == 'n' &&
             c3 == 'e') {
-          return LibgdxAtlasTokens.T_NONE;
+          return T_NONE;
         } else {
-          return LibgdxAtlasTokens.T_IDENTIFIER;
+          return T_IDENTIFIER;
         }
       }
 
@@ -264,16 +266,16 @@ final class LibgdxAtlasScanner {
             valueBuffer[2] == 'd' &&
             valueBuffer[3] == 'e' &&
             valueBuffer[4] == 'x') {
-          return LibgdxAtlasTokens.T_INDEX;
+          return T_INDEX;
         } else if(
             valueBuffer[0] == 'f' &&
             valueBuffer[1] == 'a' &&
             valueBuffer[2] == 'l' &&
             valueBuffer[3] == 's' &&
             valueBuffer[4] == 'e') {
-          return LibgdxAtlasTokens.T_FALSE;
+          return T_FALSE;
         } else {
-          return keywordLookup(LibgdxAtlasTokens.L5_KEYWORDS, LibgdxAtlasTokens.T_SPLIT);
+          return keywordLookup(L5_KEYWORDS, T_SPLIT);
         }
 
       case 6:
@@ -284,7 +286,7 @@ final class LibgdxAtlasScanner {
             valueBuffer[3] == 'a' &&
             valueBuffer[4] == 't' &&
             valueBuffer[5] == 'e') {
-          return LibgdxAtlasTokens.T_ROTATE;
+          return T_ROTATE;
         } else if(
             valueBuffer[0] == 'o' &&
             valueBuffer[1] == 'f' &&
@@ -292,16 +294,16 @@ final class LibgdxAtlasScanner {
             valueBuffer[3] == 's' &&
             valueBuffer[4] == 'e' &&
             valueBuffer[5] == 't') {
-          return LibgdxAtlasTokens.T_OFFSET;
+          return T_OFFSET;
         } else {
-          return keywordLookup(LibgdxAtlasTokens.L6_KEYWORDS, LibgdxAtlasTokens.T_FORMAT);
+          return keywordLookup(L6_KEYWORDS, T_FORMAT);
         }
 
       case 8:
-        return keywordLookup(LibgdxAtlasTokens.L8_KEYWORDS, LibgdxAtlasTokens.T_RGBA8888);
+        return keywordLookup(L8_KEYWORDS, T_RGBA8888);
 
       default:
-        return LibgdxAtlasTokens.T_IDENTIFIER;
+        return T_IDENTIFIER;
     }
   }
 
@@ -324,11 +326,6 @@ final class LibgdxAtlasScanner {
       }
     }
 
-    return LibgdxAtlasTokens.T_IDENTIFIER;
-  }
-
-  @Nonnull
-  public final char[] internalBuffer() {
-    return valueBuffer;
+    return T_IDENTIFIER;
   }
 }
