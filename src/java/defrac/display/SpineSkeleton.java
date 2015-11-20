@@ -149,7 +149,7 @@ public final class SpineSkeleton extends DisplayObject {
                               @Nonnull final Renderer renderer,
                               @Nonnull final BlendMode parentBlendMode,
                               final float parentAlpha) {
-    final float alpha = this.alpha * skeleton.a;
+    final float alpha = parentAlpha * this.alpha * skeleton.a;
     final float skeletonX = skeleton.x();
     final float skeletonY = skeleton.y();
 
