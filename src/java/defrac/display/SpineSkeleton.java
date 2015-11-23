@@ -57,6 +57,12 @@ public final class SpineSkeleton extends DisplayObject {
   @Nonnull
   private float[] uvs = ArrayUtil.EMPTY_FLOAT_ARRAY;
 
+  @Nonnull
+  private float[] colors = ArrayUtil.EMPTY_FLOAT_ARRAY;
+
+  @Nonnull
+  private short[] indices = ArrayUtil.EMPTY_SHORT_ARRAY;
+
   /**
    * Creates and returns a new SpineSkeleton object
    *
@@ -65,8 +71,7 @@ public final class SpineSkeleton extends DisplayObject {
   public SpineSkeleton(@Nonnull final SkeletonData skeletonData) {
     skeleton = new Skeleton(skeletonData);
     skeleton.updateWorldTransform();
-
-    computeAABB();
+    onPoseUpdate();
   }
 
   /**
@@ -123,12 +128,18 @@ public final class SpineSkeleton extends DisplayObject {
    */
   private void onPoseUpdate() {
     skeleton.updateWorldTransform();
+
+    final Array<Slot> drawOrder = skeleton.getDrawOrder();
+    final int vertexCountOfAllSlots = vertexCount(drawOrder);
+    final int triangleCountOfAllSlots = triangleCount(drawOrder);
+
+    updateVertices(vertexCountOfAllSlots, triangleCountOfAllSlots);
     computeAABB();
 
-    if(vertexCount(skeleton.getDrawOrder()) != vertices.length) {
+    if(    vertexCountOfAllSlots   >= vertices.length
+        || triangleCountOfAllSlots >= indices.length) {
       invalidate(RENDERLIST_DIRTY);
     } else {
-      updateVertices();
       invalidate(RENDERLIST_MATRIX_DIRTY);
     }
   }
@@ -137,8 +148,26 @@ public final class SpineSkeleton extends DisplayObject {
    * Computes the AABB of the skeleton and applies it to the display object
    */
   private void computeAABB() {
-    skeleton.getBounds(AABB);
-    initAABB(AABB);
+    float
+        minX = Integer.MAX_VALUE,
+        minY = Integer.MAX_VALUE,
+        maxX = Integer.MIN_VALUE,
+        maxY = Integer.MIN_VALUE;
+
+    final Array<Slot> drawOrder = skeleton.getDrawOrder();
+    final int vertexCount = vertexCount(drawOrder);
+
+    for(int vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 2) {
+      final float x = vertices[vertexIndex    ];
+      final float y = vertices[vertexIndex + 1];
+
+      if(x < minX) { minX = x; }
+      if(x > maxX) { maxX = x; }
+      if(y < minY) { minY = y; }
+      if(y > maxY) { maxY = y; }
+    }
+
+    initAABB(minX, minY, maxX - minX, maxY - minY);
   }
 
   /** {@inheritDoc} */
@@ -149,105 +178,114 @@ public final class SpineSkeleton extends DisplayObject {
                               @Nonnull final Renderer renderer,
                               @Nonnull final BlendMode parentBlendMode,
                               final float parentAlpha) {
+    final BlendMode inheritedBlendMode = blendMode().inherit(parentBlendMode);
     final float alpha = parentAlpha * this.alpha * skeleton.a;
-    final float skeletonX = skeleton.x();
-    final float skeletonY = skeleton.y();
 
     final Array<Slot> drawOrder = skeleton.getDrawOrder();
     final Array<RenderContent> contents = new Array<>();
 
-    int vertexCountOfAllSlots = vertexCount(drawOrder);
-
-    if(vertexCountOfAllSlots >= vertices.length) {
-      vertices = new float[vertexCountOfAllSlots];
-      uvs = new float[vertexCountOfAllSlots];
-    }
-
-    int offset = 0;
+    int vertexOffset = 0;
+    int colorOffset = 0;
+    int indexOffset = 0;
 
     for(final Slot slot : drawOrder) {
       final Attachment attachment = slot.attachment();
-      final float slotAlpha = slot.a;
 
       if(attachment instanceof RegionAttachment) {
         final RegionAttachment regionAttachment = (RegionAttachment)attachment;
-        final float attachmentAlpha = regionAttachment.a;
-        final BlendMode blendMode = slot.data().blendMode;
+        final BlendMode blendMode = slot.data().blendMode.inherit(inheritedBlendMode);
         final int triangleCount = regionAttachment.triangleCount();
         final int vertexCount = regionAttachment.vertexCount();
 
-        regionAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
-
-        System.arraycopy(regionAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(regionAttachment.uvs(), 0, uvs, offset, vertexCount);
-
         contents.push(
             renderer.drawTexture(
                 projectionMatrix, modelViewMatrix,
-                alpha * slotAlpha * attachmentAlpha,
+                alpha,
                 blendMode,
                 regionAttachment.region().textureData,
-                vertices, offset,
-                uvs, offset,
-                triangleCount));
-        offset += vertexCount;
+                vertices, vertexOffset,
+                uvs, vertexOffset,
+                colors, colorOffset,
+                indices,
+                indexOffset,
+                vertexCount / 2,
+                triangleCount / 3));
+
+        vertexOffset += vertexCount;
+        colorOffset += vertexCount * 2;
+        indexOffset += triangleCount;
       } else if(attachment instanceof MeshAttachment) {
         final MeshAttachment meshAttachment = (MeshAttachment)attachment;
-        final float attachmentAlpha = meshAttachment.a;
-        final BlendMode blendMode = slot.data().blendMode;
+        final BlendMode blendMode = slot.data().blendMode.inherit(inheritedBlendMode);
         final int triangleCount = meshAttachment.triangleCount();
         final int vertexCount = meshAttachment.vertexCount();
 
-        meshAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
-
-        System.arraycopy(meshAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(meshAttachment.uvs(), 0, uvs, offset, vertexCount);
-
         contents.push(
             renderer.drawTexture(
                 projectionMatrix, modelViewMatrix,
-                alpha * slotAlpha * attachmentAlpha,
+                alpha,
                 blendMode,
                 meshAttachment.region().textureData,
-                vertices, offset,
-                uvs, offset,
-                triangleCount));
-        offset += vertexCount;
+                vertices, vertexOffset,
+                uvs, vertexOffset,
+                colors, colorOffset,
+                indices,
+                indexOffset,
+                vertexCount / 2,
+                triangleCount / 3));
+
+        vertexOffset += vertexCount;
+        colorOffset += vertexCount * 2;
+        indexOffset += triangleCount;
       } else if(attachment instanceof SkinnedMeshAttachment) {
         final SkinnedMeshAttachment skinnedMeshAttachment = (SkinnedMeshAttachment)attachment;
-        final float attachmentAlpha = skinnedMeshAttachment.a;
         final BlendMode blendMode = slot.data().blendMode;
         final int triangleCount = skinnedMeshAttachment.triangleCount();
         final int vertexCount = skinnedMeshAttachment.vertexCount();
 
-        skinnedMeshAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
-
-        System.arraycopy(skinnedMeshAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(skinnedMeshAttachment.uvs(), 0, uvs, offset, vertexCount);
-
         contents.push(
             renderer.drawTexture(
                 projectionMatrix, modelViewMatrix,
-                alpha * slotAlpha * attachmentAlpha,
+                alpha,
                 blendMode,
                 skinnedMeshAttachment.region().textureData,
-                vertices, offset,
-                uvs, offset,
-                triangleCount));
-        offset += vertexCount;
+                vertices, vertexOffset,
+                uvs, vertexOffset,
+                colors, colorOffset,
+                indices,
+                indexOffset,
+                vertexCount / 2,
+                triangleCount / 3));
+
+        vertexOffset += vertexCount;
+        colorOffset += vertexCount * 2;
+        indexOffset += triangleCount;
       }
     }
 
     return renderer.zone(contents);
   }
 
-  private void updateVertices() {
+  private void updateVertices(final int vertexCountOfAllSlots,
+                              final int triangleCountOfAllSlots) {
+    final Array<Slot> drawOrder = skeleton.getDrawOrder();
+
+    if(vertexCountOfAllSlots >= vertices.length) {
+      vertices = new float[vertexCountOfAllSlots];
+      uvs = new float[vertexCountOfAllSlots];
+      colors = new float[vertexCountOfAllSlots * 2];
+    }
+
+    if(triangleCountOfAllSlots >= indices.length) {
+      indices = new short[triangleCountOfAllSlots];
+    }
+
     final float skeletonX = skeleton.x();
     final float skeletonY = skeleton.y();
 
-    final Array<Slot> drawOrder = skeleton.getDrawOrder();
-
-    int offset = 0;
+    int vertexOffset = 0;
+    int colorOffset = 0;
+    int indexOffset = 0;
 
     for(final Slot slot : drawOrder) {
       final Attachment attachment = slot.attachment();
@@ -255,32 +293,42 @@ public final class SpineSkeleton extends DisplayObject {
       if(attachment instanceof RegionAttachment) {
         final RegionAttachment regionAttachment = (RegionAttachment)attachment;
         final int vertexCount = regionAttachment.vertexCount();
+        final int triangleCount = regionAttachment.triangleCount();
 
-        regionAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
+        regionAttachment.computeWorldVertices(
+            skeletonX, skeletonY, slot,
+            vertices, uvs, colors, indices,
+            vertexOffset, colorOffset, indexOffset);
 
-        System.arraycopy(regionAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(regionAttachment.uvs(), 0, uvs, offset, vertexCount);
-        offset += vertexCount;
+        vertexOffset += vertexCount;
+        colorOffset  += vertexCount * 2;
+        indexOffset  += triangleCount;
       } else if(attachment instanceof MeshAttachment) {
         final MeshAttachment meshAttachment = (MeshAttachment)attachment;
         final int vertexCount = meshAttachment.vertexCount();
+        final int triangleCount = meshAttachment.triangleCount();
 
-        meshAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
+        meshAttachment.computeWorldVertices(
+            skeletonX, skeletonY, slot,
+            vertices, uvs, colors, indices,
+            vertexOffset, colorOffset, indexOffset);
 
-        System.arraycopy(meshAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(meshAttachment.uvs(), 0, uvs, offset, vertexCount);
-
-        offset += vertexCount;
+        vertexOffset += vertexCount;
+        colorOffset  += vertexCount * 2;
+        indexOffset  += triangleCount;
       } else if(attachment instanceof SkinnedMeshAttachment) {
         final SkinnedMeshAttachment skinnedMeshAttachment = (SkinnedMeshAttachment)attachment;
         final int vertexCount = skinnedMeshAttachment.vertexCount();
+        final int triangleCount = skinnedMeshAttachment.triangleCount();
 
-        skinnedMeshAttachment.updateWorldVertices(skeletonX, skeletonY, slot);
+        skinnedMeshAttachment.computeWorldVertices(
+            skeletonX, skeletonY, slot,
+            vertices, uvs, colors, indices,
+            vertexOffset, colorOffset, indexOffset);
 
-        System.arraycopy(skinnedMeshAttachment.worldVertices(), 0, vertices, offset, vertexCount);
-        System.arraycopy(skinnedMeshAttachment.uvs(), 0, uvs, offset, vertexCount);
-
-        offset += vertexCount;
+        vertexOffset += vertexCount;
+        colorOffset  += vertexCount * 2;
+        indexOffset  += triangleCount;
       }
     }
   }
@@ -296,6 +344,24 @@ public final class SpineSkeleton extends DisplayObject {
         sum += ((MeshAttachment)attachment).vertexCount();
       } else if(attachment instanceof SkinnedMeshAttachment) {
         sum += ((SkinnedMeshAttachment)attachment).vertexCount();
+      }
+    }
+
+    return sum;
+  }
+
+
+  private static int triangleCount(@Nonnull final Array<Slot> drawOrder) {
+    int sum = 0;
+
+    for(final Slot slot : drawOrder) {
+      final Attachment attachment = slot.attachment();
+      if(attachment instanceof RegionAttachment) {
+        sum += ((RegionAttachment)attachment).triangleCount();
+      } else if(attachment instanceof MeshAttachment) {
+        sum += ((MeshAttachment)attachment).triangleCount();
+      } else if(attachment instanceof SkinnedMeshAttachment) {
+        sum += ((SkinnedMeshAttachment)attachment).triangleCount();
       }
     }
 

@@ -34,10 +34,6 @@
 package defrac.animation.spine;
 
 import defrac.animation.spine.attachments.Attachment;
-import defrac.animation.spine.attachments.MeshAttachment;
-import defrac.animation.spine.attachments.RegionAttachment;
-import defrac.animation.spine.attachments.SkinnedMeshAttachment;
-import defrac.geom.Rectangle;
 import defrac.util.Array;
 import defrac.util.Color;
 import defrac.util.MathUtil;
@@ -415,53 +411,6 @@ public final class Skeleton {
       if (ikConstraint.data.name.equals(ikConstraintName)) return ikConstraint;
     }
     return null;
-  }
-
-  /** Returns the axis aligned bounding box (AABB) of the region, mesh, and skinned mesh attachments for the current pose.
-   * @param rect The rect receiving the AABB */
-  public void getBounds(@Nonnull final Rectangle rect) {
-    float
-        minX = Integer.MAX_VALUE,
-        minY = Integer.MAX_VALUE,
-        maxX = Integer.MIN_VALUE,
-        maxY = Integer.MIN_VALUE;
-
-    for(final Slot slot : drawOrder) {
-      final Attachment attachment = slot.attachment;
-
-      float[] vertices = null;
-
-      if(attachment instanceof RegionAttachment) {
-        RegionAttachment region = (RegionAttachment) attachment;
-        region.updateWorldVertices(x(), y(), slot);
-        vertices = region.worldVertices();
-      } else if (attachment instanceof MeshAttachment) {
-        MeshAttachment mesh = (MeshAttachment) attachment;
-        mesh.updateWorldVertices(x(), y(), slot);
-        vertices = mesh.worldVertices();
-      } else if (attachment instanceof SkinnedMeshAttachment) {
-        SkinnedMeshAttachment mesh = (SkinnedMeshAttachment) attachment;
-        mesh.updateWorldVertices(x(), y(), slot);
-        vertices = mesh.worldVertices();
-      }
-
-      if(vertices != null) {
-        for(int i = 0, n = vertices.length; i < n; i += 2) {
-          final float x = vertices[i    ];
-          final float y = vertices[i + 1];
-
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-
-    rect.x = minX;
-    rect.y = minY;
-    rect.width = maxX - minX;
-    rect.height = maxY - minY;
   }
 
   public void color(final int valueARGB) {

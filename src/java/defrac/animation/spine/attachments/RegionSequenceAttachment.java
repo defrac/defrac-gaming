@@ -54,10 +54,16 @@ public final class RegionSequenceAttachment extends RegionAttachment {
   }
 
   @Override
-  public void updateWorldVertices(final float skeletonX,
-                                  final float skeletonY,
-                                  @Nonnull final Slot slot) {
-
+  public void computeWorldVertices(final float skeletonX,
+                                   final float skeletonY,
+                                   @Nonnull final Slot slot,
+                                   @Nonnull final float[] worldVertices,
+                                   @Nonnull final float[] worldUVs,
+                                   @Nonnull final float[] worldColors,
+                                   @Nonnull final short[] worldIndices,
+                                   final int worldVertexOffset,
+                                   final int worldColorOffset,
+                                   final int worldIndexOffset) {
     checkState(regions != null, "Regions have not been set");
 
     int frameIndex = (int)(slot.attachmentTime() / frameTime);
@@ -87,7 +93,7 @@ public final class RegionSequenceAttachment extends RegionAttachment {
 
     region(regions[frameIndex]);
 
-    super.updateWorldVertices(skeletonX, skeletonY, slot);
+    super.computeWorldVertices(skeletonX, skeletonY, slot, worldVertices, worldUVs, worldColors, worldIndices, worldVertexOffset, worldColorOffset, worldIndexOffset);
   }
 
   @Nonnull

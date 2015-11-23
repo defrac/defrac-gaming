@@ -344,8 +344,8 @@ public final class SkeletonJson {
 
         attachment.bones(bones.toArray());
         attachment.weights(weights.toArray());
-        attachment.regionUVs(uvs);
         attachment.triangles(checkNotNull(map.getArray("triangles")).toShortArray());
+        attachment.regionUVs(uvs);
         attachment.updateUVs();
 
         final String color = map.optString("color", null);

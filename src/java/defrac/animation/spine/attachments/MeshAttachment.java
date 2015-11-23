@@ -48,8 +48,6 @@ import static defrac.lang.Preconditions.checkState;
  * Attachment that displays a texture region.
  */
 public final class MeshAttachment extends Attachment {
-  public static final int NUM_VERTICES_EACH_TRIANGLE = 6;
-
   public float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
   private Texture region;
@@ -59,13 +57,8 @@ public final class MeshAttachment extends Attachment {
   private float[] vertices = ArrayUtil.EMPTY_FLOAT_ARRAY;
   @Nonnull
   private float[] regionUVs = ArrayUtil.EMPTY_FLOAT_ARRAY;
-
   @Nonnull
   private short[] triangles = ArrayUtil.EMPTY_SHORT_ARRAY;
-  private int triangleCount = 0;
-
-  @Nonnull
-  private float[] worldVertices = ArrayUtil.EMPTY_FLOAT_ARRAY;
   @Nonnull
   private float[] uvs = ArrayUtil.EMPTY_FLOAT_ARRAY;
 
@@ -95,6 +88,7 @@ public final class MeshAttachment extends Attachment {
 
   public void regionUVs(@Nonnull final float[] value) {
     regionUVs = value;
+    uvs = new float[value.length];
   }
 
   @Nonnull
@@ -103,8 +97,6 @@ public final class MeshAttachment extends Attachment {
   }
 
   public void updateUVs() {
-    final float[] regionUVs = this.regionUVs;
-
     final float u, v;
     final float width, height;
 
@@ -118,37 +110,27 @@ public final class MeshAttachment extends Attachment {
       height = region.uv11y - v;
     }
 
-    final short[] triangles = this.triangles;
-    final int triangleCount = triangles.length;
+    final float[] regionUVs = this.regionUVs;
+    final int uvCount = regionUVs.length;
 
-    for(int triangleIndex = 0, worldIndex = 0; triangleIndex < triangleCount; ++triangleIndex, worldIndex += 2) {
-      final int uvIndex = triangles[triangleIndex] << 1;
-
+    for(int uvIndex = 0; uvIndex < uvCount; uvIndex += 2) {
       final float tu = regionUVs[uvIndex    ];
       final float tv = regionUVs[uvIndex + 1];
-
-      uvs[worldIndex    ] = u + tu * width;
-      uvs[worldIndex + 1] = v + tv * height;
+      uvs[uvIndex    ] = u + tu * width;
+      uvs[uvIndex + 1] = v + tv * height;
     }
-
-// -------------------------------------------------------------------
-// The Display List isn't capable of rendering indexed triangles
-// when not using RawGL. For the love of batching we will unpack
-// everything here and will flip to indexed rendering when DrawTexture
-// supports it.
-// -------------------------------------------------------------------
-//    final float[] regionUVs = this.regionUVs;
-//    final int n = regionUVs.length;
-//
-//    for(int i = 0; i < n; i += 2) {
-//      uvs[i    ] = u + regionUVs[i    ] * width;
-//      uvs[i + 1] = v + regionUVs[i + 1] * height;
-//    }
   }
 
-  public void updateWorldVertices(final float skeletonX,
-                                  final float skeletonY,
-                                  @Nonnull final Slot slot) {
+  public void computeWorldVertices(final float skeletonX,
+                                   final float skeletonY,
+                                   @Nonnull final Slot slot,
+                                   @Nonnull final float[] worldVertices,
+                                   @Nonnull final float[] worldUVs,
+                                   @Nonnull final float[] worldColors,
+                                   @Nonnull final short[] worldIndices,
+                                   final int worldVertexOffset,
+                                   final int worldColorOffset,
+                                   final int worldIndexOffset) {
     final Bone bone = slot.bone();
 
     final float x = skeletonX + bone.worldX();
@@ -161,43 +143,39 @@ public final class MeshAttachment extends Attachment {
 
     float[] vertices = this.vertices;
     final int verticesCount = vertices.length;
-    final float[] worldVertices = this.worldVertices;
 
     if(slot.attachmentVertices.length() == verticesCount) {
       vertices = slot.attachmentVertices.elements();
     }
 
-    final short[] triangles = this.triangles;
-    final int triangleCount = triangles.length;
+    int worldVertexIndex = worldVertexOffset;
+    int worldColorIndex = worldColorOffset;
 
-    for(int triangleIndex = 0, worldIndex = 0; triangleIndex < triangleCount; ++triangleIndex, worldIndex += 2) {
-      final int vertexIndex = triangles[triangleIndex] << 1;
+    final float r = this.r;
+    final float g = this.g;
+    final float b = this.b;
+    final float a = this.a * slot.a;
 
+    for(int vertexIndex = 0; vertexIndex < verticesCount; vertexIndex += 2, worldVertexIndex += 2, worldColorIndex += 4) {
       final float vx = vertices[vertexIndex    ];
       final float vy = vertices[vertexIndex + 1];
 
-      worldVertices[worldIndex    ] = vx * m00 + vy * m01 + x;
-      worldVertices[worldIndex + 1] = vx * m10 + vy * m11 + y;
+      worldVertices[worldVertexIndex    ] = vx * m00 + vy * m01 + x;
+      worldVertices[worldVertexIndex + 1] = vx * m10 + vy * m11 + y;
+
+      worldUVs[worldVertexIndex    ] = uvs[vertexIndex    ];
+      worldUVs[worldVertexIndex + 1] = uvs[vertexIndex + 1];
+
+      worldColors[worldColorIndex    ] = r;
+      worldColors[worldColorIndex + 1] = g;
+      worldColors[worldColorIndex + 2] = b;
+      worldColors[worldColorIndex + 3] = a;
     }
-// -------------------------------------------------------------------
-// The Display List isn't capable of rendering indexed triangles
-// when not using RawGL. For the love of batching we will unpack
-// everything here and will flip to indexed rendering when DrawTexture
-// supports it.
-// -------------------------------------------------------------------
-//    for(int vertexIndex = 0; vertexIndex < verticesCount; vertexIndex += 2) {
-//      final float vx = vertices[vertexIndex    ];
-//      final float vy = vertices[vertexIndex + 1];
-//
-//      worldVertices[vertexIndex    ] = vx * m00 + vy * m01 + x;
-//      worldVertices[vertexIndex + 1] = vx * m10 + vy * m11 + y;
-//    }
+
+    System.arraycopy(triangles, 0, worldIndices, worldIndexOffset, triangles.length);
   }
 
-  public float[] worldVertices() {
-    return worldVertices;
-  }
-
+  @Nonnull
   public float[] vertices() {
     return vertices;
   }
@@ -206,6 +184,7 @@ public final class MeshAttachment extends Attachment {
     vertices = value;
   }
 
+  @Nonnull
   public short[] triangles() {
     return triangles;
   }
@@ -215,22 +194,11 @@ public final class MeshAttachment extends Attachment {
 
     assert length % 3 == 0;
 
-    final int unpackedCount = length * 2;
-
     triangles = value;
-    triangleCount = length / 3;
-
-    if(worldVertices.length != unpackedCount) {
-      worldVertices = new float[unpackedCount];
-    }
-
-    if(uvs.length != unpackedCount) {
-      uvs = new float[unpackedCount];
-    }
   }
 
   public int triangleCount() {
-    return triangleCount;
+    return triangles.length;
   }
 
   public void color(final int valueARGB) {
@@ -292,6 +260,6 @@ public final class MeshAttachment extends Attachment {
   }
 
   public int vertexCount() {
-    return worldVertices.length;
+    return vertices.length;
   }
 }

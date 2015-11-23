@@ -49,8 +49,6 @@ import static defrac.lang.Preconditions.checkState;
  * Attachment that displays a texture region.
  */
 public final class SkinnedMeshAttachment extends Attachment {
-  public static final int NUM_VERTICES_EACH_TRIANGLE = 6;
-
   public float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
   private Texture region;
@@ -61,16 +59,9 @@ public final class SkinnedMeshAttachment extends Attachment {
   @Nonnull
   private float[] weights = ArrayUtil.EMPTY_FLOAT_ARRAY;
   @Nonnull
-  private float[] vertices = ArrayUtil.EMPTY_FLOAT_ARRAY;
-  @Nonnull
   private float[] regionUVs = ArrayUtil.EMPTY_FLOAT_ARRAY;
-
   @Nonnull
   private short[] triangles = ArrayUtil.EMPTY_SHORT_ARRAY;
-  private int triangleCount;
-
-  @Nonnull
-  private float[] worldVertices = ArrayUtil.EMPTY_FLOAT_ARRAY;
   @Nonnull
   private float[] uvs = ArrayUtil.EMPTY_FLOAT_ARRAY;
 
@@ -106,14 +97,12 @@ public final class SkinnedMeshAttachment extends Attachment {
 
     regionUVs = value;
 
-    if(vertices.length != length) {
-      vertices = new float[length];
+    if(uvs.length != length) {
+      uvs = new float[length];
     }
   }
 
   public void updateUVs() {
-    final float[] regionUVs = this.regionUVs;
-
     final float u, v;
     final float width, height;
 
@@ -127,44 +116,40 @@ public final class SkinnedMeshAttachment extends Attachment {
       height = region.uv11y - v;
     }
 
-    final short[] triangles = this.triangles;
-    final int triangleCount = triangles.length;
+    final float[] regionUVs = this.regionUVs;
+    final int uvCount = regionUVs.length;
 
-    for(int triangleIndex = 0, worldIndex = 0; triangleIndex < triangleCount; ++triangleIndex, worldIndex += 2) {
-      final int uvIndex = triangles[triangleIndex] << 1;
-
-      final float tu = regionUVs[uvIndex    ];
-      final float tv = regionUVs[uvIndex + 1];
-
-      uvs[worldIndex    ] = u + tu * width;
-      uvs[worldIndex + 1] = v + tv * height;
+    for(int uvIndex = 0; uvIndex < uvCount; uvIndex += 2) {
+      uvs[uvIndex    ] = u + regionUVs[uvIndex    ] * width;
+      uvs[uvIndex + 1] = v + regionUVs[uvIndex + 1] * height;
     }
-
-// -------------------------------------------------------------------
-// The Display List isn't capable of rendering indexed triangles
-// when not using RawGL. For the love of batching we will unpack
-// everything here and will flip to indexed rendering when DrawTexture
-// supports it.
-// -------------------------------------------------------------------
-//    final float[] regionUVs = this.regionUVs;
-//    final int n = regionUVs.length;
-//
-//    for(int i = 0; i < n; i += 2) {
-//      uvs[i    ] = u + regionUVs[i    ] * width;
-//      uvs[i + 1] = v + regionUVs[i + 1] * height;
-//    }
   }
 
-  public void updateWorldVertices(final float skeletonX,
-                                  final float skeletonY,
-                                  @Nonnull final Slot slot) {
+  public void computeWorldVertices(final float skeletonX,
+                                   final float skeletonY,
+                                   @Nonnull final Slot slot,
+                                   @Nonnull final float[] worldVertices,
+                                   @Nonnull final float[] worldUVs,
+                                   @Nonnull final float[] worldColors,
+                                   @Nonnull final short[] worldIndices,
+                                   final int worldVertexOffset,
+                                   final int worldColorOffset,
+                                   final int worldIndexOffset) {
     final Skeleton skeleton = slot.skeleton();
     final Object[] skeletonBones = skeleton.bones().elements();
     final float[] weights = this.weights;
     final int[] bones = this.bones;
 
+    final float cr = this.r;
+    final float cg = this.g;
+    final float cb = this.b;
+    final float ca = this.a * slot.a;
+
     if(slot.attachmentVertices.isEmpty()) {
-      for(int w = 0, v = 0, b = 0, n = bones.length; v < n; w += 2) {
+      int worldVertexIndex = worldVertexOffset;
+      int worldColorIndex = worldColorOffset;
+
+      for(int v = 0, b = 0, n = bones.length; v < n; worldVertexIndex += 2, worldColorIndex += 4) {
         float wx = 0.0f;
         float wy = 0.0f;
 
@@ -177,13 +162,21 @@ public final class SkinnedMeshAttachment extends Attachment {
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
 
-        vertices[w    ] = wx + skeletonX;
-        vertices[w + 1] = wy + skeletonY;
+        worldVertices[worldVertexIndex    ] = wx + skeletonX;
+        worldVertices[worldVertexIndex + 1] = wy + skeletonY;
+
+        worldColors[worldColorIndex    ] = cr;
+        worldColors[worldColorIndex + 1] = cg;
+        worldColors[worldColorIndex + 2] = cb;
+        worldColors[worldColorIndex + 3] = ca;
       }
     } else {
       final float[] ffd = slot.attachmentVertices.elements();
 
-      for(int w = 0, v = 0, b = 0, f = 0, n = bones.length; v < n; w += 2) {
+      int worldVertexIndex = worldVertexOffset;
+      int worldColorIndex = worldColorOffset;
+
+      for(int v = 0, b = 0, f = 0, n = bones.length; v < n; worldVertexIndex += 2, worldColorIndex += 4) {
         float wx = 0.0f;
         float wy = 0.0f;
 
@@ -196,28 +189,18 @@ public final class SkinnedMeshAttachment extends Attachment {
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
 
-        vertices[w    ] = wx + skeletonX;
-        vertices[w + 1] = wy + skeletonY;
+        worldVertices[worldVertexIndex    ] = wx + skeletonX;
+        worldVertices[worldVertexIndex + 1] = wy + skeletonY;
+
+        worldColors[worldColorIndex    ] = cr;
+        worldColors[worldColorIndex + 1] = cg;
+        worldColors[worldColorIndex + 2] = cb;
+        worldColors[worldColorIndex + 3] = ca;
       }
     }
 
-    final short[] triangles = this.triangles;
-    final int triangleCount = triangles.length;
-
-    for(int triangleIndex = 0, worldIndex = 0; triangleIndex < triangleCount; ++triangleIndex, worldIndex += 2) {
-      int vertexIndex = triangles[triangleIndex] << 1;
-
-      final float vx = vertices[vertexIndex    ];
-      final float vy = vertices[vertexIndex + 1];
-
-      worldVertices[worldIndex    ] = vx;
-      worldVertices[worldIndex + 1] = vy;
-    }
-  }
-
-  @Nonnull
-  public float[] worldVertices() {
-    return worldVertices;
+    System.arraycopy(uvs, 0, worldUVs, worldVertexOffset, uvs.length);
+    System.arraycopy(triangles, 0, worldIndices, worldIndexOffset, triangles.length);
   }
 
   @Nonnull
@@ -262,22 +245,11 @@ public final class SkinnedMeshAttachment extends Attachment {
 
     assert length % 3 == 0;
 
-    final int unpackedCount = length * 2;
-
     triangles = value;
-    triangleCount = length / 3;
-
-    if(worldVertices.length != unpackedCount) {
-      worldVertices = new float[unpackedCount];
-    }
-
-    if(uvs.length != unpackedCount) {
-      uvs = new float[unpackedCount];
-    }
   }
 
   public int triangleCount() {
-    return triangleCount;
+    return triangles.length;
   }
 
   public void color(final int valueARGB) {
@@ -339,6 +311,6 @@ public final class SkinnedMeshAttachment extends Attachment {
   }
 
   public int vertexCount() {
-    return worldVertices.length;
+    return uvs.length;
   }
 }

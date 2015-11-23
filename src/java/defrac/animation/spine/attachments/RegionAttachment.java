@@ -47,10 +47,9 @@ import static defrac.lang.Preconditions.checkState;
  * Attachment that displays a texture region.
  */
 public class RegionAttachment extends Attachment {
-  public static final int NUM_TRIANGLES = 2;
-  public static final int NUM_VERTICES = NUM_TRIANGLES * 6; // | Each vertex has 2 coordinates (x,y)
-                                                            // | Each triangle consists of 3 vertices
-                                                            // +--> 2 * 3 = 6
+  public static final int NUM_TRIANGLES = 6;
+  public static final int NUM_VERTICES = 8;
+
   public static final int BOTTOM_LEFT_X = 0;
   public static final int BOTTOM_LEFT_Y = 1;
   public static final int TOP_LEFT_X = 2;
@@ -62,12 +61,6 @@ public class RegionAttachment extends Attachment {
 
   @Nonnull
   private final float[] offset = new float[8];
-
-  @Nonnull
-  private final float[] worldVertices = new float[NUM_VERTICES];
-
-  @Nonnull
-  private final float[] uvs = new float[NUM_VERTICES];
 
   private Texture region;
   private String path;
@@ -121,66 +114,6 @@ public class RegionAttachment extends Attachment {
     }
 
     region = value;
-
-    uvs[ 0] = value.uv00x; uvs[ 1] = value.uv00y; // (0,0)
-    uvs[ 2] = value.uv10x; uvs[ 3] = value.uv10y; // (1,0)
-    uvs[ 4] = value.uv01x; uvs[ 5] = value.uv01y; // (0,1)
-
-    uvs[ 6] = value.uv10x; uvs[ 7] = value.uv10y; // (1,0)
-    uvs[ 8] = value.uv11x; uvs[ 9] = value.uv11y; // (1,1)
-    uvs[10] = value.uv01x; uvs[11] = value.uv01y; // (0,1)
-  }
-
-  public void updateWorldVertices(final float skeletonX,
-                                  final float skeletonY,
-                                  @Nonnull final Slot slot) {
-    checkState(region != null, "Region has not been set");
-
-    final Bone bone = slot.bone();
-
-    final float x = skeletonX + bone.worldX();
-    final float y = skeletonY + bone.worldY();
-
-    final float m00 = bone.m00();
-    final float m01 = bone.m01();
-    final float m10 = bone.m10();
-    final float m11 = bone.m11();
-
-    final float x1 = offset[BOTTOM_LEFT_X];
-    final float y1 = offset[BOTTOM_LEFT_Y];
-    final float x2 = offset[TOP_LEFT_X];
-    final float y2 = offset[TOP_LEFT_Y];
-    final float x3 = offset[TOP_RIGHT_X];
-    final float y3 = offset[TOP_RIGHT_Y];
-    final float x4 = offset[BOTTOM_RIGHT_X];
-    final float y4 = offset[BOTTOM_RIGHT_Y];
-
-    final float vert00x = x2 * m00 + y2 * m01 + x;
-    final float vert00y = x2 * m10 + y2 * m11 + y;
-    final float vert10x = x3 * m00 + y3 * m01 + x;
-    final float vert10y = x3 * m10 + y3 * m11 + y;
-    final float vert11x = x4 * m00 + y4 * m01 + x;
-    final float vert11y = x4 * m10 + y4 * m11 + y;
-    final float vert01x = x1 * m00 + y1 * m01 + x;
-    final float vert01y = x1 * m10 + y1 * m11 + y;
-
-    worldVertices[ 0] = vert00x; worldVertices[ 1] = vert00y; // (0,0)
-    worldVertices[ 2] = vert10x; worldVertices[ 3] = vert10y; // (1,0)
-    worldVertices[ 4] = vert01x; worldVertices[ 5] = vert01y; // (0,1)
-
-    worldVertices[ 6] = vert10x; worldVertices[ 7] = vert10y; // (1,0)
-    worldVertices[ 8] = vert11x; worldVertices[ 9] = vert11y; // (1,1)
-    worldVertices[10] = vert01x; worldVertices[11] = vert01y; // (0,1)
-  }
-
-  @Nonnull
-  public float[] worldVertices() {
-    return worldVertices;
-  }
-
-  @Nonnull
-  public float[] uvs() {
-    return uvs;
   }
 
   @Nonnull
@@ -276,5 +209,98 @@ public class RegionAttachment extends Attachment {
 
   public int triangleCount() {
     return NUM_TRIANGLES;
+  }
+
+  public void computeWorldVertices(final float skeletonX,
+                                   final float skeletonY,
+                                   @Nonnull final Slot slot,
+                                   @Nonnull final float[] worldVertices,
+                                   @Nonnull final float[] worldUVs,
+                                   @Nonnull final float[] worldColors,
+                                   @Nonnull final short[] worldIndices,
+                                   final int worldVertexOffset,
+                                   final int worldColorOffset,
+                                   final int worldIndexOffset) {
+    checkState(region != null, "Region has not been set");
+
+    final Bone bone = slot.bone();
+
+    final float x = skeletonX + bone.worldX();
+    final float y = skeletonY + bone.worldY();
+
+    final float m00 = bone.m00();
+    final float m01 = bone.m01();
+    final float m10 = bone.m10();
+    final float m11 = bone.m11();
+
+    final float x1 = offset[BOTTOM_LEFT_X];
+    final float y1 = offset[BOTTOM_LEFT_Y];
+    final float x2 = offset[TOP_LEFT_X];
+    final float y2 = offset[TOP_LEFT_Y];
+    final float x3 = offset[TOP_RIGHT_X];
+    final float y3 = offset[TOP_RIGHT_Y];
+    final float x4 = offset[BOTTOM_RIGHT_X];
+    final float y4 = offset[BOTTOM_RIGHT_Y];
+
+    final float vert00x = x2 * m00 + y2 * m01 + x;
+    final float vert00y = x2 * m10 + y2 * m11 + y;
+    final float vert10x = x3 * m00 + y3 * m01 + x;
+    final float vert10y = x3 * m10 + y3 * m11 + y;
+    final float vert11x = x4 * m00 + y4 * m01 + x;
+    final float vert11y = x4 * m10 + y4 * m11 + y;
+    final float vert01x = x1 * m00 + y1 * m01 + x;
+    final float vert01y = x1 * m10 + y1 * m11 + y;
+
+    // --
+
+    worldVertices[worldVertexOffset    ] = vert00x;
+    worldVertices[worldVertexOffset + 1] = vert00y;
+
+    worldVertices[worldVertexOffset + 2] = vert10x;
+    worldVertices[worldVertexOffset + 3] = vert10y;
+
+    worldVertices[worldVertexOffset + 4] = vert11x;
+    worldVertices[worldVertexOffset + 5] = vert11y;
+
+    worldVertices[worldVertexOffset + 6] = vert01x;
+    worldVertices[worldVertexOffset + 7] = vert01y;
+
+    // --
+
+    worldUVs[worldVertexOffset    ] = region.uv00x;
+    worldUVs[worldVertexOffset + 1] = region.uv00y;
+
+    worldUVs[worldVertexOffset + 2] = region.uv10x;
+    worldUVs[worldVertexOffset + 3] = region.uv10y;
+
+    worldUVs[worldVertexOffset + 4] = region.uv11x;
+    worldUVs[worldVertexOffset + 5] = region.uv11y;
+
+    worldUVs[worldVertexOffset + 6] = region.uv01x;
+    worldUVs[worldVertexOffset + 7] = region.uv01y;
+
+    // --
+
+    final float r = this.r;
+    final float g = this.g;
+    final float b = this.b;
+    final float a = this.a * slot.a;
+
+    for(int i = 0, j = worldColorOffset; i < 4; ++i, j += 4) {
+      worldColors[j    ] = r;
+      worldColors[j + 1] = g;
+      worldColors[j + 2] = b;
+      worldColors[j + 3] = a;
+    }
+
+    // --
+
+    worldIndices[worldIndexOffset    ] = 0;
+    worldIndices[worldIndexOffset + 1] = 1;
+    worldIndices[worldIndexOffset + 2] = 2;
+
+    worldIndices[worldIndexOffset + 3] = 0;
+    worldIndices[worldIndexOffset + 4] = 2;
+    worldIndices[worldIndexOffset + 5] = 3;
   }
 }
