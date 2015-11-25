@@ -59,11 +59,11 @@ public final class BoundingBoxAttachment extends Attachment {
     }
   }
 
-  public float[] getVertices() {
+  public float[] vertices() {
     return vertices;
   }
 
-  public void setVertices(float[] vertices) {
+  public void vertices(float[] vertices) {
     this.vertices = vertices;
   }
 }

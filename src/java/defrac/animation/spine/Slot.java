@@ -116,7 +116,7 @@ public final class Slot {
     attachmentVertices = value;
   }
 
-  void setToSetupPose(int slotIndex) {
+  private void setToSetupPose(int slotIndex) {
     this.r = data.r;
     this.g = data.g;
     this.b = data.b;

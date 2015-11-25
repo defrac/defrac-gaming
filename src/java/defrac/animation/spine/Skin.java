@@ -56,8 +56,8 @@ public final class Skin {
   @Nonnull
   final String name;
 
-  final Map<Key, Attachment> attachments = new HashMap<>();
-
+  @Nonnull
+  private final Map<Key, Attachment> attachments = new HashMap<>();
 
   public Skin(@Nonnull final  String name) {
     this.name = name;

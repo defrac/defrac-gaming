@@ -150,11 +150,11 @@ final class LibgdxAtlasScanner {
   }
 
   protected final boolean isIdentifierStart(final int c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '.';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '.' || c == '/' || c == '\\';
   }
 
   protected final boolean isIdentifierPart(final int c) {
-    return isIdentifierStart(c) || (c >= '0' && c <= '9');
+    return isIdentifierStart(c) || (c >= '0' && c <= '9') || c == '-';
   }
 
   protected final boolean isWhitespace(final int c) {

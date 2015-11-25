@@ -64,6 +64,8 @@ public final class MeshAttachment extends Attachment {
 
   private int hullLength;
 
+  private int maxVertexIndex;
+
   // Nonessential.
   private int[] edges;
   private float width, height;
@@ -104,10 +106,10 @@ public final class MeshAttachment extends Attachment {
       u = v = 0.0f;
       width = height = 1.0f;
     } else {
-      u = region.uv00x;
-      v = region.uv00y;
-      width = region.uv11x - u;
-      height = region.uv11y - v;
+      u = region.uv00u;
+      v = region.uv00v;
+      width  = region.uv11u - u;
+      height = region.uv11v - v;
     }
 
     final float[] regionUVs = this.regionUVs;
@@ -156,7 +158,7 @@ public final class MeshAttachment extends Attachment {
     final float b = this.b;
     final float a = this.a * slot.a;
 
-    for(int vertexIndex = 0; vertexIndex < verticesCount; vertexIndex += 2, worldVertexIndex += 2, worldColorIndex += 4) {
+    for(int vertexIndex = 0; vertexIndex < verticesCount && vertexIndex < maxVertexIndex; vertexIndex += 2, worldVertexIndex += 2, worldColorIndex += 4) {
       final float vx = vertices[vertexIndex    ];
       final float vy = vertices[vertexIndex + 1];
 
@@ -195,6 +197,16 @@ public final class MeshAttachment extends Attachment {
     assert length % 3 == 0;
 
     triangles = value;
+
+    int max = Short.MIN_VALUE;
+
+    for(short index : value) {
+      if(index > max) {
+        max = index;
+      }
+    }
+
+    maxVertexIndex = (max + 1) * 2;
   }
 
   public int triangleCount() {

@@ -38,7 +38,7 @@ import defrac.display.BlendMode;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class BlendModeMapping {
+final class BlendModeMapping {
   @Nonnull
   public static BlendMode map(@Nullable final String name) {
     if(name == null) {

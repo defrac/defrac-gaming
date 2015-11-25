@@ -41,10 +41,9 @@ import defrac.util.Array;
 import defrac.util.FloatArray;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class SkeletonBounds {
-  //FIXME: evaluate usage of pool
-
   private float minX, minY, maxX, maxY;
 
   @Nonnull
@@ -57,49 +56,54 @@ public final class SkeletonBounds {
   private final ObjectPool<FloatArray> polygonPool = ObjectPools.newPool(FloatArray::new);
 
   public void update(Skeleton skeleton, boolean updateAabb) {
-    Array<BoundingBoxAttachment> boundingBoxes = this.boundingBoxes;
-    Array<FloatArray> polygons = this.polygons;
-    Array<Slot> slots = skeleton.slots;
-    int slotCount = slots.size();
+    final Array<BoundingBoxAttachment> boundingBoxes = this.boundingBoxes;
+    final Array<FloatArray> polygons = this.polygons;
+    final Array<Slot> slots = skeleton.slots;
 
     boundingBoxes.clear();
     polygonPool.retAll(polygons);
     polygons.clear();
 
-    for (int i = 0; i < slotCount; i++) {
-      Slot slot = slots.get(i);
-      Attachment attachment = slot.attachment;
-      if (attachment instanceof BoundingBoxAttachment) {
-        BoundingBoxAttachment boundingBox = (BoundingBoxAttachment) attachment;
+    for(final Slot slot : slots) {
+      final Attachment attachment = slot.attachment;
+
+      if(attachment instanceof BoundingBoxAttachment) {
+        final BoundingBoxAttachment boundingBox = (BoundingBoxAttachment)attachment;
         boundingBoxes.push(boundingBox);
 
-        FloatArray polygon = polygonPool.get();
+        final FloatArray polygon = polygonPool.get();
+
         polygons.push(polygon);
-        int vertexCount = boundingBox.getVertices().length;
+
+        final int vertexCount = boundingBox.vertices().length;
+
         polygon.size(vertexCount);
 
         boundingBox.computeWorldVertices(slot.bone, polygon.elements());
       }
     }
 
-    if (updateAabb) aabbCompute();
+    if(updateAabb) {
+      aabbCompute();
+    }
   }
 
   private void aabbCompute() {
     float minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-    Array<FloatArray> polygons = this.polygons;
-    for (int i = 0, n = polygons.size(); i < n; i++) {
-      FloatArray polygon = polygons.get(i);
+
+    for(final FloatArray polygon : polygons) {
       float[] vertices = polygon.elements();
-      for (int ii = 0, nn = polygon.size(); ii < nn; ii += 2) {
-        float x = vertices[ii];
-        float y = vertices[ii + 1];
+
+      for(int vertexIndex = 0, vertexCount = polygon.size(); vertexIndex < vertexCount; vertexIndex += 2) {
+        final float x = vertices[vertexIndex    ];
+        final float y = vertices[vertexIndex + 1];
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
         maxY = Math.max(maxY, y);
       }
     }
+
     this.minX = minX;
     this.minY = minY;
     this.maxX = maxX;
@@ -107,82 +111,112 @@ public final class SkeletonBounds {
   }
 
   /** Returns true if the axis aligned bounding box contains the point. */
-  public boolean aabbContainsPoint(float x, float y) {
+  public boolean aabbContainsPoint(final float x, final float y) {
     return x >= minX && x <= maxX && y >= minY && y <= maxY;
   }
 
   /** Returns true if the axis aligned bounding box intersects the line segment. */
-  public boolean aabbIntersectsSegment(float x1, float y1, float x2, float y2) {
+  public boolean aabbIntersectsSegment(final float x1, final float y1, final float x2, final float y2) {
     float minX = this.minX;
     float minY = this.minY;
     float maxX = this.maxX;
     float maxY = this.maxY;
-    if ((x1 <= minX && x2 <= minX) || (y1 <= minY && y2 <= minY) || (x1 >= maxX && x2 >= maxX) || (y1 >= maxY && y2 >= maxY))
+
+    if((x1 <= minX && x2 <= minX) || (y1 <= minY && y2 <= minY) || (x1 >= maxX && x2 >= maxX) || (y1 >= maxY && y2 >= maxY)) {
       return false;
+    }
+
     float m = (y2 - y1) / (x2 - x1);
     float y = m * (minX - x1) + y1;
+
     if (y > minY && y < maxY) return true;
+
     y = m * (maxX - x1) + y1;
+
     if (y > minY && y < maxY) return true;
+
     float x = (minY - y1) / m + x1;
+
     if (x > minX && x < maxX) return true;
+
     x = (maxY - y1) / m + x1;
+
     if (x > minX && x < maxX) return true;
     return false;
   }
 
   /** Returns true if the axis aligned bounding box intersects the axis aligned bounding box of the specified bounds. */
-  public boolean aabbIntersectsSkeleton(SkeletonBounds bounds) {
+  public boolean aabbIntersectsSkeleton(@Nonnull final SkeletonBounds bounds) {
     return minX < bounds.maxX && maxX > bounds.minX && minY < bounds.maxY && maxY > bounds.minY;
   }
 
   /** Returns the first bounding box attachment that contains the point, or null. When doing many checks, it is usually more
    * efficient to only call this method if {@link #aabbContainsPoint(float, float)} returns true. */
-  public BoundingBoxAttachment containsPoint(float x, float y) {
+  @Nullable
+  public BoundingBoxAttachment containsPoint(final float x, final float y) {
     Array<FloatArray> polygons = this.polygons;
-    for (int i = 0, n = polygons.size(); i < n; i++)
-      if (containsPoint(polygons.get(i), x, y)) return boundingBoxes.get(i);
+
+    for(int polygonIndex = 0, polygonCount = polygons.size(); polygonIndex < polygonCount; polygonIndex++) {
+      if(containsPoint(polygons.get(polygonIndex), x, y)) {
+        return boundingBoxes.get(polygonIndex);
+      }
+    }
+
     return null;
   }
 
   /** Returns true if the polygon contains the point. */
-  public boolean containsPoint(FloatArray polygon, float x, float y) {
-    float[] vertices = polygon.elements();
-    int nn = polygon.size();
+  public boolean containsPoint(@Nonnull final FloatArray polygon,
+                               final float x,
+                               final float y) {
+    final float[] vertices = polygon.elements();
+    final int vertexCount = polygon.size();
 
-    int prevIndex = nn - 2;
+    int prevIndex = vertexCount - 2;
     boolean inside = false;
-    for (int ii = 0; ii < nn; ii += 2) {
-      float vertexY = vertices[ii + 1];
-      float prevY = vertices[prevIndex + 1];
-      if ((vertexY < y && prevY >= y) || (prevY < y && vertexY >= y)) {
-        float vertexX = vertices[ii];
-        if (vertexX + (y - vertexY) / (prevY - vertexY) * (vertices[prevIndex] - vertexX) < x) inside = !inside;
+
+    for(int vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 2) {
+      final float vertexY = vertices[vertexIndex + 1];
+      final float prevY   = vertices[prevIndex   + 1];
+
+      if((vertexY < y && prevY >= y) || (prevY < y && vertexY >= y)) {
+        final float vertexX = vertices[vertexIndex];
+
+        if(vertexX + (y - vertexY) / (prevY - vertexY) * (vertices[prevIndex] - vertexX) < x) {
+          inside = !inside;
+        }
       }
-      prevIndex = ii;
+
+      prevIndex = vertexIndex;
     }
     return inside;
   }
 
   /** Returns the first bounding box attachment that contains the line segment, or null. When doing many checks, it is usually
    * more efficient to only call this method if {@link #aabbIntersectsSegment(float, float, float, float)} returns true. */
-  public BoundingBoxAttachment intersectsSegment(float x1, float y1, float x2, float y2) {
-    Array<FloatArray> polygons = this.polygons;
-    for (int i = 0, n = polygons.size(); i < n; i++)
-      if (intersectsSegment(polygons.get(i), x1, y1, x2, y2)) return boundingBoxes.get(i);
+  @Nullable
+  public BoundingBoxAttachment intersectsSegment(final float x1, final float y1, final float x2, final float y2) {
+    for(int polygonIndex = 0, polygonCount = polygons.size(); polygonIndex < polygonCount; polygonIndex++) {
+      if(intersectsSegment(polygons.get(polygonIndex), x1, y1, x2, y2)) {
+        return boundingBoxes.get(polygonIndex);
+      }
+    }
+
     return null;
   }
 
   /** Returns true if the polygon contains the line segment. */
-  public boolean intersectsSegment(FloatArray polygon, float x1, float y1, float x2, float y2) {
-    float[] vertices = polygon.elements();
-    int nn = polygon.size();
+  public boolean intersectsSegment(@Nonnull final FloatArray polygon,
+                                   final float x1, final float y1,
+                                   final float x2, final float y2) {
+    final float[] vertices = polygon.elements();
+    final int vertexCount = polygon.size();
 
     float width12 = x1 - x2, height12 = y1 - y2;
     float det1 = x1 * y2 - y1 * x2;
-    float x3 = vertices[nn - 2], y3 = vertices[nn - 1];
-    for (int ii = 0; ii < nn; ii += 2) {
-      float x4 = vertices[ii], y4 = vertices[ii + 1];
+    float x3 = vertices[vertexCount - 2], y3 = vertices[vertexCount - 1];
+    for(int vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 2) {
+      float x4 = vertices[vertexIndex], y4 = vertices[vertexIndex + 1];
       float det2 = x3 * y4 - y3 * x4;
       float width34 = x3 - x4, height34 = y3 - y4;
       float det3 = width12 * height34 - height12 * width34;
@@ -198,41 +232,46 @@ public final class SkeletonBounds {
     return false;
   }
 
-  public float getMinX() {
+  public float minX() {
     return minX;
   }
 
-  public float getMinY() {
+  public float minY() {
     return minY;
   }
 
-  public float getMaxX() {
+  public float maxX() {
     return maxX;
   }
 
-  public float getMaxY() {
+  public float maxY() {
     return maxY;
   }
 
-  public float getWidth() {
+  public float width() {
     return maxX - minX;
   }
 
-  public float getHeight() {
+  public float height() {
     return maxY - minY;
   }
 
-  public Array<BoundingBoxAttachment> getBoundingBoxes() {
+  @Nonnull
+  public Array<BoundingBoxAttachment> boundingBoxes() {
     return boundingBoxes;
   }
 
-  public Array<FloatArray> getPolygons() {
+  @Nonnull
+  public Array<FloatArray> polygons() {
     return polygons;
   }
 
   /** Returns the polygon for the specified bounding box, or null. */
-  public FloatArray getPolygon(BoundingBoxAttachment boundingBox) {
+  @Nullable
+  public FloatArray getPolygon(@Nullable final BoundingBoxAttachment boundingBox) {
     int index = boundingBoxes.identityIndexOf(boundingBox);
-    return index == -1 ? null : polygons.get(index);
+    return index == -1
+        ? null
+        : polygons.get(index);
   }
 }

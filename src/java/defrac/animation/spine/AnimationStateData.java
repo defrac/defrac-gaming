@@ -33,75 +33,102 @@
 
 package defrac.animation.spine;
 
+import defrac.Objects;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
+import static defrac.lang.Preconditions.checkArgument;
+
 /** Stores mixing times between animations. */
 public final class AnimationStateData {
+  @Nonnull
+  private static final Key LOOKUP_KEY = new Key();
+
+  @Nonnull
   final Map<Key, Float> animationToMixTime = new HashMap<>();
-  final Key tempKey = new Key();
+
+  @Nonnull
   private final SkeletonData skeletonData;
+
   float defaultMix;
 
-  public AnimationStateData(SkeletonData skeletonData) {
+  public AnimationStateData(@Nonnull final SkeletonData skeletonData) {
     this.skeletonData = skeletonData;
   }
 
-  public SkeletonData getSkeletonData() {
+  @Nonnull
+  public SkeletonData skeletonData() {
     return skeletonData;
   }
 
-  public void setMix(String fromName, String toName, float duration) {
-    Animation from = skeletonData.findAnimation(fromName);
-    if (from == null) throw new IllegalArgumentException("Animation not found: " + fromName);
-    Animation to = skeletonData.findAnimation(toName);
-    if (to == null) throw new IllegalArgumentException("Animation not found: " + toName);
+  public void setMix(@Nonnull final String fromName,
+                     @Nonnull final String toName,
+                     final float duration) {
+    final Animation from = skeletonData.findAnimation(fromName);
+    final Animation to = skeletonData.findAnimation(toName);
+
+    checkArgument(from != null, "Animation not found: " + fromName);
+    checkArgument(to != null, "Animation not found: " + toName);
+
+    //noinspection ConstantConditions
     setMix(from, to, duration);
   }
 
-  public void setMix(Animation from, Animation to, float duration) {
-    if (from == null) throw new IllegalArgumentException("from cannot be null.");
-    if (to == null) throw new IllegalArgumentException("to cannot be null.");
-    Key key = new Key();
-    key.a1 = from;
-    key.a2 = to;
+  public void setMix(@Nonnull final Animation from,
+                     @Nonnull final Animation to,
+                     final float duration) {
+    final Key key = new Key();
+    key.from = from;
+    key.to = to;
     animationToMixTime.put(key, duration);
   }
 
-  public float getMix(Animation from, Animation to) {
-    tempKey.a1 = from;
-    tempKey.a2 = to;
-    Float result = animationToMixTime.get(tempKey);
-    if (result == null) return defaultMix;
-    return result;
+  public float getMix(@Nullable final Animation from,
+                      @Nullable final Animation to) {
+    LOOKUP_KEY.from = from;
+    LOOKUP_KEY.to = to;
+
+    final Float result = animationToMixTime.get(LOOKUP_KEY);
+
+    return result == null
+        ? defaultMix
+        : result;
   }
 
-  public float getDefaultMix() {
+  public float defaultMix() {
     return defaultMix;
   }
 
-  public void setDefaultMix(float defaultMix) {
-    this.defaultMix = defaultMix;
+  public void defaultMix(final float value) {
+    this.defaultMix = value;
   }
 
   static class Key {
-    Animation a1, a2;
+    Animation from, to;
 
+    @Override
     public int hashCode() {
-      return 31 * (31 + a1.hashCode()) + a2.hashCode();
+      return 31 * (31 + from.hashCode()) + to.hashCode();
     }
 
-    public boolean equals(Object obj) {
-      if (this == obj) return true;
-      if (obj == null) return false;
-      Key other = (Key) obj;
-      if (a1 == null) {
-        if (other.a1 != null) return false;
-      } else if (!a1.equals(other.a1)) return false;
-      if (a2 == null) {
-        if (other.a2 != null) return false;
-      } else if (!a2.equals(other.a2)) return false;
-      return true;
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
+    @Override
+    public boolean equals(@Nullable Object obj) {
+      if(this == obj) {
+        return true;
+      }
+
+      if(obj == null) {
+        return false;
+      }
+
+      final Key that = (Key)obj;
+
+      return Objects.equal(this.from, that.from)
+          && Objects.equal(this.to, that.to);
     }
   }
 }

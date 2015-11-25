@@ -42,6 +42,7 @@ import defrac.util.Color;
 import defrac.util.MathUtil;
 
 import javax.annotation.Nonnull;
+import java.util.Arrays;
 
 import static defrac.lang.Preconditions.checkState;
 
@@ -67,6 +68,8 @@ public final class SkinnedMeshAttachment extends Attachment {
 
   private int hullLength;
 
+  private int maxVertexIndex;
+
   // Nonessential.
   private int[] edges;
   private float width, height;
@@ -90,7 +93,7 @@ public final class SkinnedMeshAttachment extends Attachment {
   }
 
   /**
-   * For each vertex, a texure coordinate pair. Ie: u, v, ...
+   * For each vertex, a texture coordinate pair. Ie: u, v, ...
    */
   public void regionUVs(@Nonnull final float[] value) {
     final int length = value.length;
@@ -103,25 +106,34 @@ public final class SkinnedMeshAttachment extends Attachment {
   }
 
   public void updateUVs() {
-    final float u, v;
-    final float width, height;
-
     if(region == null) {
-      u = v = 0.0f;
-      width = height = 1.0f;
-    } else {
-      u = region.uv00x;
-      v = region.uv00y;
-      width = region.uv11x - u;
-      height = region.uv11y - v;
+      Arrays.fill(uvs, 0.0f);
+      return;
     }
 
     final float[] regionUVs = this.regionUVs;
     final int uvCount = regionUVs.length;
 
-    for(int uvIndex = 0; uvIndex < uvCount; uvIndex += 2) {
-      uvs[uvIndex    ] = u + regionUVs[uvIndex    ] * width;
-      uvs[uvIndex + 1] = v + regionUVs[uvIndex + 1] * height;
+    if(region.rotation == 0) {
+      final float u = region.uv00u;
+      final float v = region.uv00v;
+      final float width  = region.uv11u - u;
+      final float height = region.uv11v - v;
+
+      for(int uvIndex = 0; uvIndex < uvCount; uvIndex += 2) {
+        uvs[uvIndex    ] = u + regionUVs[uvIndex    ] * width;
+        uvs[uvIndex + 1] = v + regionUVs[uvIndex + 1] * height;
+      }
+    } else if(region.rotation == 1) {
+      final float u = region.uv10u;
+      final float v = region.uv10v;
+      final float width  = region.uv01u - u;
+      final float height = region.uv01v - v;
+
+      for(int uvIndex = 0; uvIndex < uvCount; uvIndex += 2) {
+        uvs[uvIndex    ] = u +          regionUVs[uvIndex + 1] * width;
+        uvs[uvIndex + 1] = v + height - regionUVs[uvIndex    ] * height;
+      }
     }
   }
 
@@ -140,24 +152,32 @@ public final class SkinnedMeshAttachment extends Attachment {
     final float[] weights = this.weights;
     final int[] bones = this.bones;
 
-    final float cr = this.r;
-    final float cg = this.g;
-    final float cb = this.b;
-    final float ca = this.a * slot.a;
+    final float colorRed = this.r;
+    final float colorGreen = this.g;
+    final float colorBlue = this.b;
+    final float colorAlpha = this.a * slot.a;
+
+    final int boneCount = bones.length;
+
+
+    int worldVertexIndex = worldVertexOffset;
+    int worldColorIndex = worldColorOffset;
+    int vertexIndex = 0;
+    int boneIndex = 0;
+    int weightIndex = 0;
 
     if(slot.attachmentVertices.isEmpty()) {
-      int worldVertexIndex = worldVertexOffset;
-      int worldColorIndex = worldColorOffset;
+      for(; boneIndex < boneCount && vertexIndex < maxVertexIndex; worldVertexIndex += 2, worldColorIndex += 4, ++vertexIndex) {
+        final int nn = bones[boneIndex++] + boneIndex;
 
-      for(int v = 0, b = 0, n = bones.length; v < n; worldVertexIndex += 2, worldColorIndex += 4) {
         float wx = 0.0f;
         float wy = 0.0f;
 
-        for(final int nn = bones[v++] + v; v < nn; ++v, b += 3) {
-          final Bone bone = (Bone)skeletonBones[bones[v]];
-          final float vx = weights[b    ];
-          final float vy = weights[b + 1];
-          final float weight = weights[b + 2];
+        for(; boneIndex < nn; boneIndex++, weightIndex += 3) {
+          final Bone bone = (Bone)skeletonBones[bones[boneIndex]];
+          final float vx = weights[weightIndex    ];
+          final float vy = weights[weightIndex + 1];
+          final float weight = weights[weightIndex + 2];
           wx += (vx * bone.m00() + vy * bone.m01() + bone.worldX()) * weight;
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
@@ -165,26 +185,27 @@ public final class SkinnedMeshAttachment extends Attachment {
         worldVertices[worldVertexIndex    ] = wx + skeletonX;
         worldVertices[worldVertexIndex + 1] = wy + skeletonY;
 
-        worldColors[worldColorIndex    ] = cr;
-        worldColors[worldColorIndex + 1] = cg;
-        worldColors[worldColorIndex + 2] = cb;
-        worldColors[worldColorIndex + 3] = ca;
+        worldColors[worldColorIndex    ] = colorRed;
+        worldColors[worldColorIndex + 1] = colorGreen;
+        worldColors[worldColorIndex + 2] = colorBlue;
+        worldColors[worldColorIndex + 3] = colorAlpha;
       }
     } else {
       final float[] ffd = slot.attachmentVertices.elements();
 
-      int worldVertexIndex = worldVertexOffset;
-      int worldColorIndex = worldColorOffset;
+      int ffdIndex = 0;
 
-      for(int v = 0, b = 0, f = 0, n = bones.length; v < n; worldVertexIndex += 2, worldColorIndex += 4) {
+      for(; boneIndex < boneCount && vertexIndex < maxVertexIndex; worldVertexIndex += 2, worldColorIndex += 4, ++vertexIndex) {
         float wx = 0.0f;
         float wy = 0.0f;
 
-        for(final int nn = bones[v++] + v; v < nn; ++v, b += 3, f += 2) {
-          final Bone bone = (Bone)skeletonBones[bones[v]];
-          final float vx = weights[b    ] + ffd[f    ];
-          final float vy = weights[b + 1] + ffd[f + 1];
-          final float weight = weights[b + 2];
+        final int nn = bones[boneIndex++] + boneIndex;
+
+        for(; boneIndex < nn; boneIndex++, weightIndex += 3, ffdIndex += 2) {
+          final Bone bone = (Bone)skeletonBones[bones[boneIndex]];
+          final float vx = weights[weightIndex    ] + ffd[ffdIndex    ];
+          final float vy = weights[weightIndex + 1] + ffd[ffdIndex + 1];
+          final float weight = weights[weightIndex + 2];
           wx += (vx * bone.m00() + vy * bone.m01() + bone.worldX()) * weight;
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
@@ -192,14 +213,14 @@ public final class SkinnedMeshAttachment extends Attachment {
         worldVertices[worldVertexIndex    ] = wx + skeletonX;
         worldVertices[worldVertexIndex + 1] = wy + skeletonY;
 
-        worldColors[worldColorIndex    ] = cr;
-        worldColors[worldColorIndex + 1] = cg;
-        worldColors[worldColorIndex + 2] = cb;
-        worldColors[worldColorIndex + 3] = ca;
+        worldColors[worldColorIndex    ] = colorRed;
+        worldColors[worldColorIndex + 1] = colorGreen;
+        worldColors[worldColorIndex + 2] = colorBlue;
+        worldColors[worldColorIndex + 3] = colorAlpha;
       }
     }
 
-    System.arraycopy(uvs, 0, worldUVs, worldVertexOffset, uvs.length);
+    System.arraycopy(uvs, 0, worldUVs, worldVertexOffset, vertexIndex * 2);
     System.arraycopy(triangles, 0, worldIndices, worldIndexOffset, triangles.length);
   }
 
@@ -246,6 +267,16 @@ public final class SkinnedMeshAttachment extends Attachment {
     assert length % 3 == 0;
 
     triangles = value;
+
+    int max = Short.MIN_VALUE;
+
+    for(short index : value) {
+      if(index > max) {
+        max = index;
+      }
+    }
+
+    maxVertexIndex = max + 1;
   }
 
   public int triangleCount() {

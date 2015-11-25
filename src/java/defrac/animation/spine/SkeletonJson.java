@@ -107,7 +107,7 @@ public final class SkeletonJson {
         }
       }
 
-      final BoneData boneData = new BoneData(boneMap.getString("name"), parent);
+      final BoneData boneData = new BoneData(checkNotNull(boneMap.getString("name")), parent);
       boneData.length = boneMap.optFloat("length", 0.0f) * scale;
       boneData.x = boneMap.optFloat("x", 0.0f) * scale;
       boneData.y = boneMap.optFloat("y", 0.0f) * scale;
@@ -131,7 +131,7 @@ public final class SkeletonJson {
     final JSONArray iks = root.optArray("ik");
     for(int i = 0, n = iks.size(); i < n; ++i) {
       final JSONObject ikMap = iks.optObject(i);
-      final IkConstraintData ikConstraintData = new IkConstraintData(ikMap.getString("name"));
+      final IkConstraintData ikConstraintData = new IkConstraintData(checkNotNull(ikMap.getString("name")));
 
       for(final JSON boneMap : ikMap.optArray("bones")) {
         final String boneName = boneMap.stringValue();
@@ -144,7 +144,7 @@ public final class SkeletonJson {
         ikConstraintData.bones.push(bone);
       }
 
-      final String targetName = ikMap.getString("target");
+      final String targetName = checkNotNull(ikMap.getString("target"));
       ikConstraintData.target = skeletonData.findBone(targetName);
 
       if(ikConstraintData.target == null) {
@@ -162,7 +162,7 @@ public final class SkeletonJson {
     for(int i = 0, n = slots.size(); i < n; ++i) {
       final JSONObject slotMap = slots.optObject(i);
       final String slotName = checkNotNull(slotMap.getString("name"));
-      final String boneName = slotMap.getString("bone");
+      final String boneName = checkNotNull(slotMap.getString("bone"));
       final BoneData boneData = skeletonData.findBone(boneName);
 
       if(boneData == null) {
@@ -188,7 +188,7 @@ public final class SkeletonJson {
       final Skin skin = new Skin(skinName);
 
       for(final String slotName : skinMap.keySet()) {
-        int slotIndex = skeletonData.findSlotIndex(slotName);
+        final int slotIndex = skeletonData.findSlotIndex(slotName);
         final JSONObject slotEntry = skinMap.optObject(slotName);
 
         if(slotIndex == -1) {
@@ -257,13 +257,13 @@ public final class SkeletonJson {
         }
 
         attachment.path(path);
-        attachment.x(map.optFloat("x", 0) * scale);
-        attachment.y(map.optFloat("y", 0) * scale);
-        attachment.scaleX(map.optFloat("scaleX", 1));
-        attachment.scaleY(map.optFloat("scaleY", 1));
-        attachment.rotation(map.optFloat("rotation", 0));
-        attachment.setWidth(map.optFloat("width") * scale);
-        attachment.setHeight(map.optFloat("height") * scale);
+        attachment.x(map.optFloat("x", 0.0f) * scale);
+        attachment.y(map.optFloat("y", 0.0f) * scale);
+        attachment.scaleX(map.optFloat("scaleX", 1.0f));
+        attachment.scaleY(map.optFloat("scaleY", 1.0f));
+        attachment.rotation(map.optFloat("rotation", 0.0f));
+        attachment.setWidth(map.optFloat("width", 0.0f) * scale);
+        attachment.setHeight(map.optFloat("height", 0.0f) * scale);
 
         final String color = map.optString("color", null);
         if(color != null) {
@@ -379,7 +379,7 @@ public final class SkeletonJson {
           }
         }
 
-        attachment.setVertices(vertices);
+        attachment.vertices(vertices);
 
         return attachment;
       }
@@ -418,7 +418,7 @@ public final class SkeletonJson {
         }
 
         timelines.push(timeline);
-        duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() * 5 - 5]);
+        duration = Math.max(duration, timeline.frames()[timeline.frameCount() * 5 - 5]);
       }
 
       final JSONArray attachmentTimeline = slotMap.optArray("attachment", null);
@@ -432,7 +432,7 @@ public final class SkeletonJson {
         }
 
         timelines.push(timeline);
-        duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() - 1]);
+        duration = Math.max(duration, timeline.frames()[timeline.frameCount() - 1]);
       }
     }
 
@@ -457,7 +457,7 @@ public final class SkeletonJson {
           readCurve(timeline, frameIndex, valueMap);
         }
         timelines.push(timeline);
-        duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() * 2 - 2]);
+        duration = Math.max(duration, timeline.frames()[timeline.frameCount() * 2 - 2]);
       }
 
       final JSONArray translateTimeline = boneMap.optArray("translate", null);
@@ -480,7 +480,6 @@ public final class SkeletonJson {
         duration = readFlipTimeline(
             timelines, boneIndex, duration,
             flipXTimeline, "x", new FlipXTimeline(flipXTimeline.size()));
-
       }
 
       final JSONArray flipYTimeline = boneMap.optArray("flipY", null);
@@ -505,7 +504,7 @@ public final class SkeletonJson {
         readCurve(timeline, frameIndex, valueMap);
       }
       timelines.push(timeline);
-      duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() * 3 - 3]);
+      duration = Math.max(duration, timeline.frames()[timeline.frameCount() * 3 - 3]);
     }
 
     // FFD timelines.
@@ -541,9 +540,9 @@ public final class SkeletonJson {
           final int vertexCount;
 
           if(attachment instanceof MeshAttachment) {
-            vertexCount = ((MeshAttachment) attachment).vertices().length;
+            vertexCount = ((MeshAttachment)attachment).vertices().length;
           } else {
-            vertexCount = ((SkinnedMeshAttachment) attachment).weights().length / 3 * 2;
+            vertexCount = ((SkinnedMeshAttachment)attachment).weights().length / 3 * 2;
           }
 
           for(int frameIndex = 0, frameCount = meshMap.size(); frameIndex < frameCount; ++frameIndex) {
@@ -584,7 +583,7 @@ public final class SkeletonJson {
           }
 
           timelines.push(timeline);
-          duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() - 1]);
+          duration = Math.max(duration, timeline.frames()[timeline.frameCount() - 1]);
         }
       }
     }
@@ -617,7 +616,7 @@ public final class SkeletonJson {
 
           for(int i = 0, n = offsets.size(); i < n; ++i) {
             final JSONObject offsetMap = offsets.optObject(i);
-            final int slotIndex = skeletonData.findSlotIndex(offsetMap.getString("slot"));
+            final int slotIndex = skeletonData.findSlotIndex(checkNotNull(offsetMap.getString("slot")));
 
             if(slotIndex == -1) {
               throw new SpineException("Slot not found: " + offsetMap.getString("slot"));
@@ -649,7 +648,7 @@ public final class SkeletonJson {
       }
 
       timelines.push(timeline);
-      duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() - 1]);
+      duration = Math.max(duration, timeline.frames()[timeline.frameCount() - 1]);
     }
 
     // Event timeline.
@@ -659,7 +658,7 @@ public final class SkeletonJson {
 
       for(int frameIndex = 0, frameCount = eventsMap.size(); frameIndex < frameCount; ++frameIndex) {
         final JSONObject eventMap = eventsMap.optObject(frameIndex);
-        final EventData eventData = skeletonData.findEvent(eventMap.getString("name"));
+        final EventData eventData = skeletonData.findEvent(checkNotNull(eventMap.getString("name")));
 
         if(eventData == null) {
           throw new SpineException("Event not found: " + eventMap.getString("name"));
@@ -673,20 +672,20 @@ public final class SkeletonJson {
       }
 
       timelines.push(timeline);
-      duration = Math.max(duration, timeline.getFrames()[timeline.getFrameCount() - 1]);
+      duration = Math.max(duration, timeline.frames()[timeline.frameCount() - 1]);
     }
 
     timelines.trimToSize();
     skeletonData.animations.push(new Animation(name, timelines, duration));
   }
 
-  void readCurve(@Nonnull final CurveTimeline timeline,
-                 final int frameIndex,
-                 @Nonnull final JSONObject valueMap) {
+  private static void readCurve(@Nonnull final CurveTimeline timeline,
+                                final int frameIndex,
+                                @Nonnull final JSONObject valueMap) {
     final JSON curve = valueMap.opt("curve");
 
     if(curve.isString() && "stepped".equals(curve.stringValue())) {
-      timeline.setStepped(frameIndex);
+      timeline.setSteppedAt(frameIndex);
     } else if (curve.isArray()) {
       final JSONArray curveArray = (JSONArray)curve;
 
@@ -697,12 +696,12 @@ public final class SkeletonJson {
     }
   }
 
-  float readTranslateTimeline(@Nonnull final  Array<Timeline> timelines,
-                              final int boneIndex,
-                              final float duration,
-                              @Nonnull final JSONArray timelineData,
-                              @Nonnull final TranslateTimeline timeline,
-                              final float timelineScale) {
+  private static float readTranslateTimeline(@Nonnull final  Array<Timeline> timelines,
+                                             final int boneIndex,
+                                             final float duration,
+                                             @Nonnull final JSONArray timelineData,
+                                             @Nonnull final TranslateTimeline timeline,
+                                             final float timelineScale) {
     timeline.boneIndex = boneIndex;
 
     for(int frameIndex = 0, frameCount = timelineData.size(); frameIndex < frameCount; ++frameIndex) {
@@ -714,15 +713,15 @@ public final class SkeletonJson {
     }
 
     timelines.push(timeline);
-    return Math.max(duration, timeline.getFrames()[timeline.getFrameCount() * 3 - 3]);
+    return Math.max(duration, timeline.frames()[timeline.frameCount() * 3 - 3]);
   }
 
-  float readFlipTimeline(@Nonnull final  Array<Timeline> timelines,
-                         final int boneIndex,
-                         final float duration,
-                         @Nonnull final JSONArray timelineData,
-                         @Nonnull final String field,
-                         @Nonnull final FlipXTimeline timeline) {
+  private static float readFlipTimeline(@Nonnull final Array<Timeline> timelines,
+                                        final int boneIndex,
+                                        final float duration,
+                                        @Nonnull final JSONArray timelineData,
+                                        @Nonnull final String field,
+                                        @Nonnull final FlipXTimeline timeline) {
     timeline.boneIndex = boneIndex;
 
     for(int frameIndex = 0, frameCount = timelineData.size(); frameIndex < frameCount; ++frameIndex) {
@@ -731,6 +730,6 @@ public final class SkeletonJson {
     }
 
     timelines.push(timeline);
-    return Math.max(duration, timeline.getFrames()[timeline.getFrameCount() * 3 - 3]);
+    return Math.max(duration, timeline.frames()[timeline.frameCount() * 3 - 3]);
   }
 }

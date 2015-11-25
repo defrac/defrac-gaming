@@ -107,7 +107,7 @@ public final class IkConstraint {
             targetY - bone.worldY,
             targetX - bone.worldX) * MathUtil.RAD_TO_DEG;
 
-    if(bone.worldFlipX != (bone.worldFlipY != Bone.yDown)) {
+    if(bone.worldFlipX == bone.worldFlipY) {
       rotationIK = -rotationIK;
     }
 

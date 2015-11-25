@@ -36,10 +36,13 @@ package defrac.animation.spine.attachments;
 
 import defrac.animation.spine.Skeleton;
 
+import javax.annotation.Nullable;
+
 /**
  * Attachment that displays a skeleton.
  */
 public final class SkeletonAttachment extends Attachment {
+  @Nullable
   private Skeleton skeleton;
 
   public SkeletonAttachment(String name) {
@@ -49,14 +52,15 @@ public final class SkeletonAttachment extends Attachment {
   /**
    * @return May return null.
    */
-  public Skeleton getSkeleton() {
+  @Nullable
+  public Skeleton skeleton() {
     return skeleton;
   }
 
   /**
    * @param skeleton May be null.
    */
-  public void setSkeleton(Skeleton skeleton) {
+  public void skeleton(@Nullable final Skeleton skeleton) {
     this.skeleton = skeleton;
   }
 }

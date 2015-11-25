@@ -41,8 +41,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public final class Bone {
-  static final boolean yDown = true;
-
   @Nonnull
   final BoneData data;
 
@@ -118,7 +116,7 @@ public final class Bone {
       final boolean skeletonFlipX = skeleton.flipX, skeletonFlipY = skeleton.flipY;
 
       worldX = skeletonFlipX ? -x : x;
-      worldY = skeletonFlipY != yDown ? -y : y;
+      worldY = skeletonFlipY ? y : -y;
       worldScaleX = scaleX;
       worldScaleY = scaleY;
       worldRotation = rotationIK;
@@ -138,17 +136,16 @@ public final class Bone {
       m01 = -sin * worldScaleY;
     }
 
-    if(worldFlipY != yDown) {
-      m10 = -sin * worldScaleX;
-      m11 = -cos * worldScaleY;
-    } else {
+    if(worldFlipY) {
       m10 = sin * worldScaleX;
       m11 = cos * worldScaleY;
+    } else {
+      m10 = -sin * worldScaleX;
+      m11 = -cos * worldScaleY;
     }
   }
 
   public void setToSetupPose() {
-    final BoneData data = this.data;
     x = data.x;
     y = data.y;
     rotation = data.rotation;
@@ -310,7 +307,7 @@ public final class Bone {
 
     float m00 = this.m00, m10 = this.m10, m01 = this.m01, m11 = this.m11;
 
-    if(worldFlipX != (worldFlipY != yDown)) {
+    if(worldFlipX == worldFlipY) {
       m00 = -m00;
       m11 = -m11;
     }

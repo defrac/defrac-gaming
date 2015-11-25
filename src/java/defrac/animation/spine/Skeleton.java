@@ -41,6 +41,8 @@ import defrac.util.MathUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static defrac.lang.Preconditions.checkArgument;
+
 public final class Skeleton {
   @Nonnull
   final SkeletonData data;
@@ -57,8 +59,12 @@ public final class Skeleton {
   @Nonnull
   private final Array<Array<Bone>> boneCache = new Array<>();
 
+  @Nonnull
   Array<Slot> drawOrder;
+
+  @Nullable
   Skin skin;
+
   float time;
   boolean flipX, flipY;
   float x, y;
@@ -273,143 +279,169 @@ public final class Skeleton {
   }
 
   /** @return May be null. */
-  public Bone findBone(String boneName) {
-    if (boneName == null) throw new IllegalArgumentException("boneName cannot be null.");
-    Array<Bone> bones = this.bones;
-    for (int i = 0, n = bones.size(); i < n; i++) {
-      Bone bone = bones.get(i);
-      if (bone.data.name.equals(boneName)) return bone;
-    }
-    return null;
+  public Bone findBone(@Nonnull final String boneName) {
+    final int index = findBoneIndex(boneName);
+
+    return index == -1
+        ? null
+        : bones.get(index);
   }
 
   /** @return -1 if the bone was not found. */
-  public int findBoneIndex(String boneName) {
-    if (boneName == null) throw new IllegalArgumentException("boneName cannot be null.");
-    Array<Bone> bones = this.bones;
-    for (int i = 0, n = bones.size(); i < n; i++)
-      if (bones.get(i).data.name.equals(boneName)) return i;
+  public int findBoneIndex(@Nonnull final String boneName) {
+    for(int boneIndex = 0, boneCount = bones.size(); boneIndex < boneCount; boneIndex++) {
+      if(bones.get(boneIndex).data.name.equals(boneName)) {
+        return boneIndex;
+      }
+    }
+
     return -1;
   }
 
-  public Array<Slot> getSlots() {
+  @Nonnull
+  public Array<Slot> slots() {
     return slots;
   }
 
   /** @return May be null. */
-  public Slot findSlot(String slotName) {
-    if (slotName == null) throw new IllegalArgumentException("slotName cannot be null.");
-    Array<Slot> slots = this.slots;
-    for (int i = 0, n = slots.size(); i < n; i++) {
-      Slot slot = slots.get(i);
-      if (slot.data.name.equals(slotName)) return slot;
-    }
-    return null;
+  @Nullable
+  public Slot findSlot(@Nonnull  String slotName) {
+    final int index = findSlotIndex(slotName);
+
+    return index == -1
+        ? null
+        : slots.get(index);
   }
 
   /** @return -1 if the bone was not found. */
-  public int findSlotIndex(String slotName) {
-    if (slotName == null) throw new IllegalArgumentException("slotName cannot be null.");
-    Array<Slot> slots = this.slots;
-    for (int i = 0, n = slots.size(); i < n; i++)
-      if (slots.get(i).data.name.equals(slotName)) return i;
+  public int findSlotIndex(@Nonnull final String slotName) {
+    for(int slotIndex = 0, slotCount = slots.size(); slotIndex < slotCount; slotIndex++) {
+      if(slots.get(slotIndex).data.name.equals(slotName)) {
+        return slotIndex;
+      }
+    }
+
     return -1;
   }
 
   /** Returns the slots in the order they will be drawn. The returned array may be modified to change the draw order. */
-  public Array<Slot> getDrawOrder() {
+  @Nonnull
+  public Array<Slot> drawOrder() {
     return drawOrder;
   }
 
   /** Sets the slots and the order they will be drawn. */
-  public void setDrawOrder(Array<Slot> drawOrder) {
-    this.drawOrder = drawOrder;
+  public void drawOrder(@Nonnull final Array<Slot> value) {
+    drawOrder = value;
   }
 
   /** @return May be null. */
-  public Skin getSkin() {
+  @Nullable
+  public Skin skin() {
     return skin;
   }
 
   /** Sets the skin used to look up attachments before looking in the {@link SkeletonData#defaultSkin() default skin}.
    * Attachments from the new skin are attached if the corresponding attachment from the old skin was attached. If there was no
    * old skin, each slot's setup mode attachment is attached from the new skin.
-   * @param newSkin May be null. */
-  public void setSkin(Skin newSkin) {
-    if (newSkin != null) {
-      if (skin != null)
-        newSkin.attachAll(this, skin);
-      else {
-        Array<Slot> slots = this.slots;
-        for (int i = 0, n = slots.size(); i < n; i++) {
-          Slot slot = slots.get(i);
-          String name = slot.data.attachmentName;
-          if (name != null) {
-            Attachment attachment = newSkin.getAttachment(i, name);
-            if (attachment != null) slot.attachment(attachment);
+   * @param value May be null. */
+  public void skin(@Nullable final Skin value) {
+    if(value != null) {
+      if(skin != null) {
+        value.attachAll(this, skin);
+      } else {
+        final Array<Slot> slots = this.slots;
+
+        for(int slotIndex = 0, slotCount = slots.size(); slotIndex < slotCount; slotIndex++) {
+          final Slot slot = slots.get(slotIndex);
+          final String name = slot.data.attachmentName;
+
+          if(name != null) {
+            final Attachment attachment = value.getAttachment(slotIndex, name);
+
+            if(attachment != null) {
+              slot.attachment(attachment);
+            }
           }
         }
       }
     }
-    skin = newSkin;
+
+    skin = value;
   }
 
   /** Sets a skin by name.
-   * @see #setSkin(Skin) */
-  public void setSkin(String skinName) {
-    Skin skin = data.findSkin(skinName);
-    if (skin == null) throw new IllegalArgumentException("Skin not found: " + skinName);
-    setSkin(skin);
+   * @see #skin(Skin) */
+  public void skin(@Nonnull String skinName) {
+    final Skin skin = data.findSkin(skinName);
+    checkArgument(skin != null, "Skin not found: " + skinName);
+    skin(skin);
   }
 
   /** @return May be null. */
-  public Attachment getAttachment(String slotName, String attachmentName) {
+  @Nullable
+  public Attachment getAttachment(@Nonnull final String slotName,
+                                  @Nonnull final String attachmentName) {
     return getAttachment(data.findSlotIndex(slotName), attachmentName);
   }
 
   /** @return May be null. */
-  public Attachment getAttachment(int slotIndex, String attachmentName) {
-    if (attachmentName == null) throw new IllegalArgumentException("attachmentName cannot be null.");
-    if (skin != null) {
-      Attachment attachment = skin.getAttachment(slotIndex, attachmentName);
-      if (attachment != null) return attachment;
+  @Nullable
+  public Attachment getAttachment(final int slotIndex,
+                                  @Nonnull final String attachmentName) {
+    if(skin != null) {
+      final Attachment attachment = skin.getAttachment(slotIndex, attachmentName);
+
+      if(attachment != null) {
+        return attachment;
+      }
     }
-    if (data.defaultSkin != null) return data.defaultSkin.getAttachment(slotIndex, attachmentName);
+
+    if(data.defaultSkin != null) {
+      return data.defaultSkin.getAttachment(slotIndex, attachmentName);
+    }
+
     return null;
   }
 
   /** @param attachmentName May be null. */
-  public void setAttachment(String slotName, String attachmentName) {
-    if (slotName == null) throw new IllegalArgumentException("slotName cannot be null.");
-    Array<Slot> slots = this.slots;
-    for (int i = 0, n = slots.size(); i < n; i++) {
-      Slot slot = slots.get(i);
-      if (slot.data.name.equals(slotName)) {
+  public void setAttachment(@Nonnull final String slotName,
+                            @Nullable final String attachmentName) {
+    for(int slotIndex = 0, slotCount = slots.size(); slotIndex < slotCount; slotIndex++) {
+      final Slot slot = slots.get(slotIndex);
+
+      if(slotName.equals(slot.data.name)) {
         Attachment attachment = null;
-        if (attachmentName != null) {
-          attachment = getAttachment(i, attachmentName);
-          if (attachment == null)
+
+        if(attachmentName != null) {
+          attachment = getAttachment(slotIndex, attachmentName);
+
+          if(attachment == null) {
             throw new IllegalArgumentException("Attachment not found: " + attachmentName + ", for slot: " + slotName);
+          }
         }
+
         slot.attachment(attachment);
         return;
       }
     }
+
     throw new IllegalArgumentException("Slot not found: " + slotName);
   }
 
-  public Array<IkConstraint> getIkConstraints() {
+  @Nonnull
+  public Array<IkConstraint> ikConstraints() {
     return ikConstraints;
   }
 
   /** @return May be null. */
-  public IkConstraint findIkConstraint(String ikConstraintName) {
-    if (ikConstraintName == null) throw new IllegalArgumentException("ikConstraintName cannot be null.");
-    Array<IkConstraint> ikConstraints = this.ikConstraints;
-    for (int i = 0, n = ikConstraints.size(); i < n; i++) {
-      IkConstraint ikConstraint = ikConstraints.get(i);
-      if (ikConstraint.data.name.equals(ikConstraintName)) return ikConstraint;
+  public IkConstraint findIkConstraint(@Nonnull final String ikConstraintName) {
+    for(final IkConstraint ikConstraint : ikConstraints) {
+      if(ikConstraint.data.name.equals(ikConstraintName)) {
+        return ikConstraint;
+      }
     }
+
     return null;
   }
 

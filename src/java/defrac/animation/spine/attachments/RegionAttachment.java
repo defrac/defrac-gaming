@@ -267,17 +267,17 @@ public class RegionAttachment extends Attachment {
 
     // --
 
-    worldUVs[worldVertexOffset    ] = region.uv00x;
-    worldUVs[worldVertexOffset + 1] = region.uv00y;
+    worldUVs[worldVertexOffset    ] = region.uv00u;
+    worldUVs[worldVertexOffset + 1] = region.uv00v;
 
-    worldUVs[worldVertexOffset + 2] = region.uv10x;
-    worldUVs[worldVertexOffset + 3] = region.uv10y;
+    worldUVs[worldVertexOffset + 2] = region.uv10u;
+    worldUVs[worldVertexOffset + 3] = region.uv10v;
 
-    worldUVs[worldVertexOffset + 4] = region.uv11x;
-    worldUVs[worldVertexOffset + 5] = region.uv11y;
+    worldUVs[worldVertexOffset + 4] = region.uv11u;
+    worldUVs[worldVertexOffset + 5] = region.uv11v;
 
-    worldUVs[worldVertexOffset + 6] = region.uv01x;
-    worldUVs[worldVertexOffset + 7] = region.uv01y;
+    worldUVs[worldVertexOffset + 6] = region.uv01u;
+    worldUVs[worldVertexOffset + 7] = region.uv01v;
 
     // --
 
