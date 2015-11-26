@@ -68,8 +68,6 @@ public final class SkinnedMeshAttachment extends Attachment {
 
   private int hullLength;
 
-  private int maxVertexIndex;
-
   // Nonessential.
   private int[] edges;
   private float width, height;
@@ -159,15 +157,13 @@ public final class SkinnedMeshAttachment extends Attachment {
 
     final int boneCount = bones.length;
 
-
     int worldVertexIndex = worldVertexOffset;
     int worldColorIndex = worldColorOffset;
-    int vertexIndex = 0;
     int boneIndex = 0;
     int weightIndex = 0;
 
     if(slot.attachmentVertices.isEmpty()) {
-      for(; boneIndex < boneCount && vertexIndex < maxVertexIndex; worldVertexIndex += 2, worldColorIndex += 4, ++vertexIndex) {
+      for(; boneIndex < boneCount; worldVertexIndex += 2, worldColorIndex += 4) {
         final int nn = bones[boneIndex++] + boneIndex;
 
         float wx = 0.0f;
@@ -195,7 +191,7 @@ public final class SkinnedMeshAttachment extends Attachment {
 
       int ffdIndex = 0;
 
-      for(; boneIndex < boneCount && vertexIndex < maxVertexIndex; worldVertexIndex += 2, worldColorIndex += 4, ++vertexIndex) {
+      for(; boneIndex < boneCount; worldVertexIndex += 2, worldColorIndex += 4) {
         float wx = 0.0f;
         float wy = 0.0f;
 
@@ -220,7 +216,7 @@ public final class SkinnedMeshAttachment extends Attachment {
       }
     }
 
-    System.arraycopy(uvs, 0, worldUVs, worldVertexOffset, vertexIndex * 2);
+    System.arraycopy(uvs, 0, worldUVs, worldVertexOffset, uvs.length);
     System.arraycopy(triangles, 0, worldIndices, worldIndexOffset, triangles.length);
   }
 
@@ -267,16 +263,6 @@ public final class SkinnedMeshAttachment extends Attachment {
     assert length % 3 == 0;
 
     triangles = value;
-
-    int max = Short.MIN_VALUE;
-
-    for(short index : value) {
-      if(index > max) {
-        max = index;
-      }
-    }
-
-    maxVertexIndex = max + 1;
   }
 
   public int triangleCount() {
