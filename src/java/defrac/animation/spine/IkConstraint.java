@@ -170,7 +170,7 @@ public final class IkConstraint {
         -1.0f, 1.0f);
     final float childAngle = (float)Math.acos(cos) * bendDirection;
     final float adjacent = len1 + len2 * cos;
-    final float opposite = len2 * (float)Math.sin(childAngle);
+    final float opposite = len2 * MathUtil.sin(childAngle);
     final float parentAngle = (float)Math.atan2(targetY * adjacent - targetX * opposite, targetX * adjacent + targetY * opposite);
 
     float rotation = (parentAngle - offset) * MathUtil.RAD_TO_DEG - parentRotation;

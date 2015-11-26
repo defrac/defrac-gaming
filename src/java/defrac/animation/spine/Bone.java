@@ -125,8 +125,8 @@ public final class Bone {
     }
 
     final float radians = MathUtil.degToRad(worldRotation);
-    final float cos = (float)Math.cos(radians);
-    final float sin = (float)Math.sin(radians);
+    final float cos = MathUtil.cos(radians);
+    final float sin = MathUtil.sin(radians);
 
     if(worldFlipX) {
       m00 = -cos * worldScaleX;

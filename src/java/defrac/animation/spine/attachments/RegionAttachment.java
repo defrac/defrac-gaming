@@ -81,8 +81,8 @@ public class RegionAttachment extends Attachment {
     final float localX2 = localX + region.width * regionScaleX;
     final float localY2 = localY + region.height * regionScaleY;
     final float radians = MathUtil.degToRad(rotation);
-    final float cos = (float)Math.cos(radians);
-    final float sin = (float)Math.sin(radians);
+    final float cos = MathUtil.cos(radians);
+    final float sin = MathUtil.sin(radians);
     final float localXCos  = localX * cos + x;
     final float localXSin  = localX * sin;
     final float localYCos  = localY * cos + y;
