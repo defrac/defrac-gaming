@@ -29,6 +29,18 @@ import javax.annotation.Nullable;
  *
  */
 public interface ParticleStrategy {
+  boolean emitParticle();
+
+  default int emitParticles(final int numParticles) {
+    for(int i = 0; i < numParticles; ++i) {
+      if(!emitParticle()) {
+        return i;
+      }
+    }
+
+    return numParticles;
+  }
+
   @Nullable
   RenderContent render(
       @Nonnull final GLMatrix projectionMatrix,

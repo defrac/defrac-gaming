@@ -33,7 +33,7 @@
 
 package defrac.animation.spine;
 
-import defrac.Objects;
+import defrac.lang.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -127,8 +127,8 @@ public final class AnimationStateData {
 
       final Key that = (Key)obj;
 
-      return Objects.equal(this.from, that.from)
-          && Objects.equal(this.to, that.to);
+      return Objects.equals(this.from, that.from)
+          && Objects.equals(this.to, that.to);
     }
   }
 }

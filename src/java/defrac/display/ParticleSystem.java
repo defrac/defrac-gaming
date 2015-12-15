@@ -48,12 +48,18 @@ public class ParticleSystem extends DisplayObject {
 
     assert stage != null;
 
+    initAABB(0.0f, 0.0f, stage.width(), stage.height());
+
+    System.out.println("onAttachToStage");
+
     enterFrame =
         stage.globalEvents().onEnterFrame.add(this::onEnterFrame);
 
     if(strategy == null) {
       enterFrame.pause();
     }
+
+    System.out.println("strategy == null? "+(strategy == null));
   }
 
   @Nullable
@@ -79,12 +85,16 @@ public class ParticleSystem extends DisplayObject {
       enterFrame.pause();
     }
 
+    invalidate(DisplayObjectFlags.RENDERLIST_DIRTY);
+
     return this;
   }
 
   private void onEnterFrame(@Nonnull final EnterFrameEvent event) {
     assert strategy != null;
+    System.out.println("update");
     strategy.update(event);
+    invalidate(DisplayObjectFlags.RENDERLIST_MATRIX_DIRTY);
   }
 
   /** {@inheritDoc} */
