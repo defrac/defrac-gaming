@@ -37,7 +37,7 @@ import static defrac.display.DisplayObjectFlags.RENDERLIST_MATRIX_DIRTY;
  *
  */
 public final class SpineSkeleton extends DisplayObject {
-  private static final float MS_TO_SEC = 0.001f;
+  private static final double MS_TO_SEC = 0.001;
 
   @Nonnull
   private final Skeleton skeleton;
@@ -141,8 +141,21 @@ public final class SpineSkeleton extends DisplayObject {
    */
   @Nonnull
   public SpineSkeleton update(@Nonnull final AnimationState state, final int dtMS) {
-    final float dt = (float)dtMS * MS_TO_SEC;
+    final double dt = (double)dtMS * MS_TO_SEC;
+    return update(state, dt);
+  }
 
+
+/**
+ * Updates the time of the animation state and skeleton, then poses the skeleton using the animation
+ *
+ * @param state The animation state to apply
+ * @param dtSec The time elapsed since the last update in seconds
+ * @return The current object
+ */
+  @Nonnull
+  public SpineSkeleton update(@Nonnull final AnimationState state, final double dtSec) {
+    final float dt = (float)dtSec;
     state.update(dt);
     skeleton.update(dt);
     state.apply(skeleton);
@@ -173,9 +186,19 @@ public final class SpineSkeleton extends DisplayObject {
    */
   @Nonnull
   public SpineSkeleton updateSkeleton(final int dtMS) {
-    final float dt = (float)dtMS * MS_TO_SEC;
+    final double dt = (double)dtMS * MS_TO_SEC;
+    return updateSkeleton(dt);
+  }
 
-    skeleton.update(dt);
+  /**
+   * Updates the skeleton
+   *
+   * @param dtSec The time elapsed since the last update in seconds
+   * @return The current object
+   */
+  @Nonnull
+  public SpineSkeleton updateSkeleton(final double dtSec) {
+    skeleton.update((float)dtSec);
     renderSkeleton();
 
     return this;

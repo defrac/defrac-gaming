@@ -26,6 +26,7 @@ import defrac.util.MathUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 /**
  *
@@ -66,6 +67,43 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     float sizeDelta;
 
     float timeToLive;
+
+    public void copyFrom(@Nonnull final Particle that) {
+      this.posX = that.posX;
+      this.posY = that.posY;
+      this.velX = that.velX;
+      this.velY = that.velY;
+
+      this.startX = that.startX;
+      this.startY = that.startY;
+
+      this.colorR = that.colorR;
+      this.colorG = that.colorG;
+      this.colorB = that.colorB;
+      this.colorA = that.colorA;
+
+      this.colorDeltaR = that.colorDeltaR;
+      this.colorDeltaG = that.colorDeltaG;
+      this.colorDeltaB = that.colorDeltaB;
+      this.colorDeltaA = that.colorDeltaA;
+
+      this.rotationRad = that.rotationRad;
+      this.rotationDelta = that.rotationDelta;
+
+      this.radialAccel = that.radialAccel;
+      this.tangentAccel = that.tangentAccel;
+
+      this.radius = that.radius;
+      this.radiusDelta = that.radiusDelta;
+
+      this.angleRad = that.angleRad;
+      this.radiansPerSecond = that.radiansPerSecond;
+
+      this.size = that.size;
+      this.sizeDelta = that.sizeDelta;
+
+      this.timeToLive = that.timeToLive;
+    }
   }
 
   @Nonnull
@@ -96,6 +134,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
   private RenderContent content;
 
   private boolean active = true;
+
+  private boolean cleanDeadParticles = false;
 
   private float emissionRate;
   private float emitCounter = 0;
@@ -163,6 +203,10 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
                               @Nonnull Renderer renderer,
                               @Nonnull BlendMode parentBlendMode,
                               float parentAlpha) {
+    if(content != null) {
+      return content;
+    }
+
     content = renderer.drawTexture(
         projectionMatrix,
         modelViewMatrix,
@@ -205,8 +249,24 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         updateParticle(currentParticle, i, dt);
         ++i;
       } else {
-        if(i != (particleCount - 1)) {
-          particles[i] = particles[particleCount - 1];
+        final int lastParticleIndex = particleCount - 1;
+
+        if(i != lastParticleIndex) {
+          // Two options here we should benchmark:
+          //
+          // (1) Scramble the array and simply swap particles[i] with particles[lastParticleIndex]
+          // (2) Assign particle[i] the values from particles[lastParticleIndex]
+          //
+          // Option (1) sounds good at first but bashes the locality
+          // whereas option (2) needs more assignments but keeps locality
+          particles[i].copyFrom(particles[lastParticleIndex]);
+
+          if(cleanDeadParticles) {
+            final int vertexIndex = lastParticleIndex * VERTICES_EACH_PARTICLE;
+            final int colorIndex = lastParticleIndex * COLORS_EACH_PARTICLE;
+            Arrays.fill(vertices, vertexIndex, vertexIndex + 8, 0.0f);
+            Arrays.fill(colors, colorIndex, colorIndex + 16, 0.0f);
+          }
         }
 
         --particleCount;
@@ -233,7 +293,7 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         final float nx;
         final float ny;
 
-        if (d <= 0.001f) {
+        if(d < 0.001f) {
           d = 0.001f;
         }
 
@@ -241,7 +301,7 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         ny = dy / d;
 
         float tx = ny * particle.tangentAccel, ty = nx * particle.tangentAccel;
-        float rx = nx * particle.radialAccel, ry = ny * particle.radialAccel;
+        float rx = nx * particle.radialAccel , ry = ny * particle.radialAccel;
 
         particle.velX += dt * (options.gravity.x + rx + tx);
         particle.velY += dt * (options.gravity.y + ry + ty);
@@ -265,7 +325,7 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
 
     { // RENDER
       int vertexIndex = index * VERTICES_EACH_PARTICLE;
-      int colorIndex = index * COLORS_EACH_PARTICLE;
+      int colorIndex  = index * COLORS_EACH_PARTICLE;
 
       final float a = particle.colorA;
       final float r = particle.colorR * a;
@@ -393,6 +453,6 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
   }
 
   private static float random(final float value) {
-    return (float)(Math.random() - Math.random()) * value;
+    return (float)(Math.random() * 2.0 - 1.0) * value;
   }
 }

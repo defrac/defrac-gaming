@@ -253,7 +253,7 @@ public final class SystemOptions {
       return defaultValue;
     }
 
-    final XMLAttribute attr = element.attribute(name);
+    final XMLAttribute attr = element.attribute("value");
 
     if(attr == null) {
       return defaultValue;
@@ -283,7 +283,7 @@ public final class SystemOptions {
 
   @Nonnull
   private static BlendMode mapToBlendMode(final int src, final int dst) {
-    if(src == GL.ONE) {
+    if(src == GL.ONE || src == GL.SRC_ALPHA) {
       if(dst == GL.ONE_MINUS_SRC_ALPHA) {
         return BlendMode.NORMAL;
       } else if(dst == GL.ONE) {
