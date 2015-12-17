@@ -214,7 +214,12 @@ public final class SystemOptions {
     result.startParticleSize = readFloat(pex, "startParticleSize", DEFAULT_START_PARTICLE_SIZE);
     result.startParticleSizeVariance = readFloat(pex, "startParticleSizeVariance", DEFAULT_START_PARTICLE_SIZE_VARIANCE);
 
-    result.finishParticleSize = readFloat(pex, "finishParticleSize", DEFAULT_FINISH_PARTICLE_SIZE);
+    if(pex.firstChild("finishParticleSize") != null) {
+      result.finishParticleSize = readFloat(pex, "finishParticleSize", DEFAULT_FINISH_PARTICLE_SIZE);
+    } else {
+      // Startling *.pex files contain "FinishParticleSize" instead of "finishParticleSize"
+      result.finishParticleSize = readFloat(pex, "FinishParticleSize", DEFAULT_FINISH_PARTICLE_SIZE);
+    }
     result.finishParticleSizeVariance = readFloat(pex, "finishParticleSizeVariance", DEFAULT_FINISH_PARTICLE_SIZE_VARIANCE);
 
     result.duration = readFloat(pex, "duration", DEFAULT_DURATION);
@@ -283,7 +288,7 @@ public final class SystemOptions {
 
   @Nonnull
   private static BlendMode mapToBlendMode(final int src, final int dst) {
-    if(src == GL.ONE || src == GL.SRC_ALPHA) {
+    if(src == GL.ONE) {
       if(dst == GL.ONE_MINUS_SRC_ALPHA) {
         return BlendMode.NORMAL;
       } else if(dst == GL.ONE) {
@@ -297,7 +302,7 @@ public final class SystemOptions {
       }
     }
 
-    return BlendMode.INHERIT;
+    return new BlendMode(src, dst);
   }
 
   public SystemOptions() {}

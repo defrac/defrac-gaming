@@ -345,36 +345,39 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
       final float y = particle.posY;
 
       if(rotation != 0.0f) {
-        final float x1 = -halfSize;
-        final float y1 = -halfSize;
-        final float x2 =  halfSize;
-        final float y2 =  halfSize;
-        final float cr = MathUtil.cos(rotation);
-        final float sr = MathUtil.sin(rotation);
+        final float tL = -halfSize;
+        final float bR =  halfSize;
+        final float cos = MathUtil.cos(rotation);
+        final float sin = MathUtil.sin(rotation);
 
-        vertices[vertexIndex++] = x1 * cr - y1 * sr + x;
-        vertices[vertexIndex++] = x1 * sr + y1 * cr + y;
+        vertices[vertexIndex++] = tL * cos - tL * sin + x;
+        vertices[vertexIndex++] = tL * sin + tL * cos + y;
 
-        vertices[vertexIndex++] = x2 * cr - y1 * sr + x;
-        vertices[vertexIndex++] = x2 * sr + y1 * cr + y;
+        vertices[vertexIndex++] = bR * cos - tL * sin + x;
+        vertices[vertexIndex++] = bR * sin + tL * cos + y;
 
-        vertices[vertexIndex++] = x2 * cr - y2 * sr + x;
-        vertices[vertexIndex++] = x2 * sr + y2 * cr + y;
+        vertices[vertexIndex++] = bR * cos - bR * sin + x;
+        vertices[vertexIndex++] = bR * sin + bR * cos + y;
 
-        vertices[vertexIndex++] = x1 * cr - y2 * sr + x;
-        vertices[vertexIndex  ] = x1 * sr + y2 * cr + y;
+        vertices[vertexIndex++] = tL * cos - bR * sin + x;
+        vertices[vertexIndex  ] = tL * sin + bR * cos + y;
       } else {
-        vertices[vertexIndex++] = x - halfSize;
-        vertices[vertexIndex++] = y - halfSize;
+        final float top = y - halfSize;
+        final float right = x + halfSize;
+        final float bottom = y + halfSize;
+        final float left = x - halfSize;
 
-        vertices[vertexIndex++] = x + halfSize;
-        vertices[vertexIndex++] = y - halfSize;
+        vertices[vertexIndex++] = left;
+        vertices[vertexIndex++] = top;
 
-        vertices[vertexIndex++] = x + halfSize;
-        vertices[vertexIndex++] = y + halfSize;
+        vertices[vertexIndex++] = right;
+        vertices[vertexIndex++] = top;
 
-        vertices[vertexIndex++] = x - halfSize;
-        vertices[vertexIndex  ] = y + halfSize;
+        vertices[vertexIndex++] = right;
+        vertices[vertexIndex++] = bottom;
+
+        vertices[vertexIndex++] = left;
+        vertices[vertexIndex  ] = bottom;
       }
     }
   }
