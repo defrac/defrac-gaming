@@ -20,7 +20,6 @@ import defrac.display.event.raw.EnterFrameEvent;
 import defrac.display.particle.ParticleStrategy;
 import defrac.display.render.RenderContent;
 import defrac.display.render.Renderer;
-import defrac.event.EventBinding;
 import defrac.gl.GLMatrix;
 
 import javax.annotation.Nonnull;
@@ -29,12 +28,9 @@ import javax.annotation.Nullable;
 /**
  *
  */
-public class ParticleSystem extends DisplayObject {
+public class ParticleSystem extends DisplayObject implements OnEnterFrameReceiver {
   @Nullable
   private ParticleStrategy strategy;
-
-  @Nullable
-  private EventBinding<EnterFrameEvent> enterFrame;
 
   public ParticleSystem(@Nonnull final ParticleStrategy strategy) {
     this.strategy(strategy);
@@ -49,13 +45,6 @@ public class ParticleSystem extends DisplayObject {
     assert stage != null;
 
     initAABB(0.0f, 0.0f, stage.width(), stage.height());
-
-    enterFrame =
-        stage.globalEvents().onEnterFrame.add(this::onEnterFrame);
-
-    if(strategy == null) {
-      enterFrame.pause();
-    }
   }
 
   @Nullable
@@ -73,22 +62,20 @@ public class ParticleSystem extends DisplayObject {
 
     strategy = value;
 
-    if(oldValue == null) {
-      if(enterFrame != null) {
-        enterFrame.resume();
-      }
-    } else if(value == null && enterFrame != null) {
-      enterFrame.pause();
-    }
-
     invalidate(DisplayObjectFlags.RENDERLIST_DIRTY);
 
     return this;
   }
 
-  private void onEnterFrame(@Nonnull final EnterFrameEvent event) {
-    assert strategy != null;
+  /** {@inheritDoc} */
+  @Override
+  public void onEnterFrame(@Nonnull final EnterFrameEvent event) {
+    if(strategy == null) {
+      return;
+    }
+
     strategy.update(event);
+
     invalidate(DisplayObjectFlags.RENDERLIST_MATRIX_DIRTY);
   }
 
