@@ -70,13 +70,11 @@ public class ParticleSystem extends DisplayObject implements OnEnterFrameReceive
   /** {@inheritDoc} */
   @Override
   public void onEnterFrame(@Nonnull final EnterFrameEvent event) {
-    if(strategy == null) {
+    if(strategy == null || !strategy.active()) {
       return;
     }
 
-    strategy.update(event);
-
-    invalidate(DisplayObjectFlags.RENDERLIST_MATRIX_DIRTY);
+    invalidate(strategy.invalidationFlags());
   }
 
   /** {@inheritDoc} */

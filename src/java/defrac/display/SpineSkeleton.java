@@ -16,6 +16,7 @@
 
 package defrac.display;
 
+import defrac.animation.Animatable;
 import defrac.animation.spine.*;
 import defrac.animation.spine.attachments.*;
 import defrac.display.event.UIEventTarget;
@@ -145,14 +146,13 @@ public final class SpineSkeleton extends DisplayObject {
     return update(state, dt);
   }
 
-
-/**
- * Updates the time of the animation state and skeleton, then poses the skeleton using the animation
- *
- * @param state The animation state to apply
- * @param dtSec The time elapsed since the last update in seconds
- * @return The current object
- */
+  /**
+   * Updates the time of the animation state and skeleton, then poses the skeleton using the animation
+   *
+   * @param state The animation state to apply
+   * @param dtSec The time elapsed since the last update in seconds
+   * @return The current object
+   */
   @Nonnull
   public SpineSkeleton update(@Nonnull final AnimationState state, final double dtSec) {
     final float dt = (float)dtSec;
@@ -549,6 +549,7 @@ public final class SpineSkeleton extends DisplayObject {
     return sum;
   }
 
+  /** {@inheritDoc} */
   @Nullable
   @Override
   public UIEventTarget captureEventTarget(@Nonnull Point point) {
@@ -572,5 +573,14 @@ public final class SpineSkeleton extends DisplayObject {
         && skeletonBounds.containsPoint(localX, localY) != null
         ? this
         : null;
+  }
+
+  /**
+   * Creates and returns an {@link Animatable} object for the given state object
+   * @param state The animation state to use
+   * @return An animatable objects to be used with a {@link defrac.animation.Juggler}
+   */
+  public Animatable animatable(@Nonnull final AnimationState state) {
+    return (final double dt) -> { update(state, dt); return true; };
   }
 }

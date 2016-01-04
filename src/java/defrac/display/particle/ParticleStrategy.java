@@ -16,8 +16,9 @@
 
 package defrac.display.particle;
 
+import defrac.animation.Animatable;
 import defrac.display.BlendMode;
-import defrac.display.event.raw.EnterFrameEvent;
+import defrac.display.DisplayObjectFlags;
 import defrac.display.render.RenderContent;
 import defrac.display.render.Renderer;
 import defrac.gl.GLMatrix;
@@ -28,7 +29,7 @@ import javax.annotation.Nullable;
 /**
  *
  */
-public interface ParticleStrategy {
+public interface ParticleStrategy extends Animatable {
   boolean emitParticle();
 
   default int emitParticles(final int numParticles) {
@@ -41,6 +42,7 @@ public interface ParticleStrategy {
     return numParticles;
   }
 
+  /** Creates and returns render content for the display list */
   @Nullable
   RenderContent render(
       @Nonnull final GLMatrix projectionMatrix,
@@ -49,5 +51,13 @@ public interface ParticleStrategy {
       @Nonnull final BlendMode parentBlendMode,
       final float parentAlpha);
 
-  void update(EnterFrameEvent event);
+  /** Whether or not the particle system is active */
+  boolean active();
+
+  ParticleStrategy active(final boolean value);
+
+  /** The invalidation flags for the display list while this particle system is active */
+  default int invalidationFlags() {
+    return DisplayObjectFlags.RENDERLIST_MATRIX_DIRTY;
+  }
 }

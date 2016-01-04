@@ -17,7 +17,6 @@
 package defrac.display.particle.particleDesigner;
 
 import defrac.display.BlendMode;
-import defrac.display.event.raw.EnterFrameEvent;
 import defrac.display.particle.ParticleStrategy;
 import defrac.display.render.RenderContent;
 import defrac.display.render.Renderer;
@@ -224,8 +223,19 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
   }
 
   @Override
-  public void update(@Nonnull final EnterFrameEvent event) {
-    final float dt = (float)event.deltaTimeSec;
+  public boolean active() {
+    return active;
+  }
+
+  @Override
+  public ParticleStrategy active(boolean value) {
+    active = value;
+    return this;
+  }
+
+  @Override
+  public boolean advanceTime(final double deltaTimeSec) {
+    final float dt = (float)deltaTimeSec;
 
     if(active && emissionRate != 0.0f) {
       final float rate = 1.0f / emissionRate;
@@ -272,6 +282,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         --particleCount;
       }
     }
+
+    return true;
   }
 
   private void updateParticle(@Nonnull final Particle particle, final int index, final float dt) {
