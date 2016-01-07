@@ -42,6 +42,8 @@ public interface ParticleStrategy extends Animatable {
     return numParticles;
   }
 
+  void clearRenderContent();
+
   /** Creates and returns render content for the display list */
   @Nullable
   RenderContent render(
@@ -49,7 +51,8 @@ public interface ParticleStrategy extends Animatable {
       @Nonnull final GLMatrix modelViewMatrix,
       @Nonnull final Renderer renderer,
       @Nonnull final BlendMode parentBlendMode,
-      final float parentAlpha);
+      final float parentAlpha,
+      final float pixelRatio);
 
   /** Whether or not the particle system is active */
   boolean active();

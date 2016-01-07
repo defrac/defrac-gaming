@@ -138,6 +138,7 @@ public final class SkinnedMeshAttachment extends Attachment {
   public void computeWorldVertices(final float skeletonX,
                                    final float skeletonY,
                                    @Nonnull final Slot slot,
+                                   float pixelRatio,
                                    @Nonnull final float[] worldVertices,
                                    @Nonnull final float[] worldUVs,
                                    @Nonnull final float[] worldColors,
@@ -178,8 +179,8 @@ public final class SkinnedMeshAttachment extends Attachment {
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
 
-        worldVertices[worldVertexIndex    ] = wx + skeletonX;
-        worldVertices[worldVertexIndex + 1] = wy + skeletonY;
+        worldVertices[worldVertexIndex    ] = (wx + skeletonX) * pixelRatio;
+        worldVertices[worldVertexIndex + 1] = (wy + skeletonY) * pixelRatio;
 
         worldColors[worldColorIndex    ] = colorRed;
         worldColors[worldColorIndex + 1] = colorGreen;
@@ -206,8 +207,8 @@ public final class SkinnedMeshAttachment extends Attachment {
           wy += (vx * bone.m10() + vy * bone.m11() + bone.worldY()) * weight;
         }
 
-        worldVertices[worldVertexIndex    ] = wx + skeletonX;
-        worldVertices[worldVertexIndex + 1] = wy + skeletonY;
+        worldVertices[worldVertexIndex    ] = (wx + skeletonX) * pixelRatio;
+        worldVertices[worldVertexIndex + 1] = (wy + skeletonY) * pixelRatio;
 
         worldColors[worldColorIndex    ] = colorRed;
         worldColors[worldColorIndex + 1] = colorGreen;

@@ -116,6 +116,7 @@ public final class PixelateFilter implements Filter {
   public void appendCode(final int pass,
                          final float width, final float height,
                          final float viewportWidth, final float viewportHeight,
+                         final float pixelRatio,
                          @Nonnull final StringBuilder builder) {
     if(pass != 0) {
       return;
@@ -130,6 +131,7 @@ public final class PixelateFilter implements Filter {
   public void appendUniforms(final int pass,
                              final float width, final float height,
                              final float viewportWidth, final float viewportHeight,
+                             final float pixelRatio,
                              @Nonnull final StringBuilder builder) {
     if(pass != 0) {
       return;
@@ -143,6 +145,7 @@ public final class PixelateFilter implements Filter {
   public void applyUniforms(final int pass,
                             final float width, final float height,
                             final float viewportWidth, final float viewportHeight,
+                            final float pixelRatio,
                             @Nonnull final GL gl,
                             @Nonnull final GLProgram program,
                             @Nonnull final GLUniformLocationCache uniforms) {
@@ -152,8 +155,8 @@ public final class PixelateFilter implements Filter {
 
     gl.uniform3f(
         uniforms.get(gl, program, "u_pixelate"),
-        width / strengthX,
-        height / strengthY,
+        width / (strengthX * pixelRatio),
+        height / (strengthY * pixelRatio),
         dynamicRange);
 
   }

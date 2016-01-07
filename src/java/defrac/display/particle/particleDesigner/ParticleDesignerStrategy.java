@@ -16,6 +16,7 @@
 
 package defrac.display.particle.particleDesigner;
 
+import defrac.animation.AnimationSystem;
 import defrac.display.BlendMode;
 import defrac.display.particle.ParticleStrategy;
 import defrac.display.render.RenderContent;
@@ -28,7 +29,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 
 /**
- *
+ * The ParticleDesignerStrategy class is a strategy for ParticleDesigner particle systems
  */
 public final class ParticleDesignerStrategy implements ParticleStrategy {
   private static final int COORDINATES_EACH_PARTICLE = 4;
@@ -195,13 +196,19 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     }
   }
 
+  @Override
+  public void clearRenderContent() {
+    content = null;
+  }
+
   @Nullable
   @Override
   public RenderContent render(@Nonnull GLMatrix projectionMatrix,
                               @Nonnull GLMatrix modelViewMatrix,
                               @Nonnull Renderer renderer,
                               @Nonnull BlendMode parentBlendMode,
-                              float parentAlpha) {
+                              float parentAlpha,
+                              final float pixelRatio) {
     if(content != null) {
       return content;
     }
@@ -234,7 +241,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
   }
 
   @Override
-  public boolean advanceTime(final double deltaTimeSec) {
+  public boolean advanceTime(@Nonnull final AnimationSystem system,
+                             final double deltaTimeSec) {
     final float dt = (float)deltaTimeSec;
 
     if(active && emissionRate != 0.0f) {

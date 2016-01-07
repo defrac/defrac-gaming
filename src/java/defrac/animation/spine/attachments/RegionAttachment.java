@@ -214,6 +214,7 @@ public class RegionAttachment extends Attachment {
   public void computeWorldVertices(final float skeletonX,
                                    final float skeletonY,
                                    @Nonnull final Slot slot,
+                                   float pixelRatio,
                                    @Nonnull final float[] worldVertices,
                                    @Nonnull final float[] worldUVs,
                                    @Nonnull final float[] worldColors,
@@ -253,17 +254,17 @@ public class RegionAttachment extends Attachment {
 
     // --
 
-    worldVertices[worldVertexOffset    ] = vert00x;
-    worldVertices[worldVertexOffset + 1] = vert00y;
+    worldVertices[worldVertexOffset    ] = vert00x * pixelRatio;
+    worldVertices[worldVertexOffset + 1] = vert00y * pixelRatio;
 
-    worldVertices[worldVertexOffset + 2] = vert10x;
-    worldVertices[worldVertexOffset + 3] = vert10y;
+    worldVertices[worldVertexOffset + 2] = vert10x * pixelRatio;
+    worldVertices[worldVertexOffset + 3] = vert10y * pixelRatio;
 
-    worldVertices[worldVertexOffset + 4] = vert11x;
-    worldVertices[worldVertexOffset + 5] = vert11y;
+    worldVertices[worldVertexOffset + 4] = vert11x * pixelRatio;
+    worldVertices[worldVertexOffset + 5] = vert11y * pixelRatio;
 
-    worldVertices[worldVertexOffset + 6] = vert01x;
-    worldVertices[worldVertexOffset + 7] = vert01y;
+    worldVertices[worldVertexOffset + 6] = vert01x * pixelRatio;
+    worldVertices[worldVertexOffset + 7] = vert01y * pixelRatio;
 
     // --
 

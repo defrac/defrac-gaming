@@ -124,6 +124,7 @@ public final class MeshAttachment extends Attachment {
   public void computeWorldVertices(final float skeletonX,
                                    final float skeletonY,
                                    @Nonnull final Slot slot,
+                                   float pixelRatio,
                                    @Nonnull final float[] worldVertices,
                                    @Nonnull final float[] worldUVs,
                                    @Nonnull final float[] worldColors,
@@ -160,8 +161,8 @@ public final class MeshAttachment extends Attachment {
       final float vx = vertices[vertexIndex    ];
       final float vy = vertices[vertexIndex + 1];
 
-      worldVertices[worldVertexIndex    ] = vx * m00 + vy * m01 + x;
-      worldVertices[worldVertexIndex + 1] = vx * m10 + vy * m11 + y;
+      worldVertices[worldVertexIndex    ] = (vx * m00 + vy * m01 + x) * pixelRatio;
+      worldVertices[worldVertexIndex + 1] = (vx * m10 + vy * m11 + y) * pixelRatio;
 
       worldUVs[worldVertexIndex    ] = uvs[vertexIndex    ];
       worldUVs[worldVertexIndex + 1] = uvs[vertexIndex + 1];

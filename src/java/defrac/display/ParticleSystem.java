@@ -42,9 +42,16 @@ public class ParticleSystem extends DisplayObject implements OnEnterFrameReceive
 
     final Stage stage = stage();
 
-    assert stage != null;
-
     initAABB(0.0f, 0.0f, stage.width(), stage.height());
+  }
+
+  @Override
+  protected void onDetachFromStage() {
+    if(strategy != null) {
+      // Prevent memory leak and give the strategy an opportunity
+      // to clear cached RenderContent
+      strategy.clearRenderContent();
+    }
   }
 
   @Nullable
@@ -84,7 +91,8 @@ public class ParticleSystem extends DisplayObject implements OnEnterFrameReceive
                               @Nonnull final GLMatrix modelViewMatrix,
                               @Nonnull final Renderer renderer,
                               @Nonnull final BlendMode parentBlendMode,
-                              final float parentAlpha) {
+                              final float parentAlpha,
+                              final float pixelRatio) {
     return strategy == null
         ? null
         : strategy.render(
@@ -92,6 +100,7 @@ public class ParticleSystem extends DisplayObject implements OnEnterFrameReceive
               modelViewMatrix,
               renderer,
               blendMode.inherit(parentBlendMode),
-              parentAlpha * alpha);
+              parentAlpha * alpha,
+              pixelRatio);
   }
 }

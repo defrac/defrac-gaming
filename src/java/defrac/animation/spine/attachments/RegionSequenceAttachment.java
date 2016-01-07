@@ -57,7 +57,7 @@ public final class RegionSequenceAttachment extends RegionAttachment {
   public void computeWorldVertices(final float skeletonX,
                                    final float skeletonY,
                                    @Nonnull final Slot slot,
-                                   @Nonnull final float[] worldVertices,
+                                   float pixelRatio, @Nonnull final float[] worldVertices,
                                    @Nonnull final float[] worldUVs,
                                    @Nonnull final float[] worldColors,
                                    @Nonnull final short[] worldIndices,
@@ -93,7 +93,17 @@ public final class RegionSequenceAttachment extends RegionAttachment {
 
     region(regions[frameIndex]);
 
-    super.computeWorldVertices(skeletonX, skeletonY, slot, worldVertices, worldUVs, worldColors, worldIndices, worldVertexOffset, worldColorOffset, worldIndexOffset);
+    super.computeWorldVertices(
+        skeletonX, skeletonY,
+        slot,
+        pixelRatio,
+        worldVertices,
+        worldUVs,
+        worldColors,
+        worldIndices,
+        worldVertexOffset,
+        worldColorOffset,
+        worldIndexOffset);
   }
 
   @Nonnull

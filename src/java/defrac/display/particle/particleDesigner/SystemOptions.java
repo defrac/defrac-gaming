@@ -24,7 +24,6 @@ import defrac.display.*;
 import defrac.geom.Point;
 import defrac.gl.GL;
 import defrac.lang.Strings;
-import defrac.resource.TextureDataResource;
 import defrac.util.Color;
 import defrac.xml.XML;
 import defrac.xml.XMLAttribute;
@@ -34,7 +33,15 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 
 /**
+ * The SystemOptions class represents the configuration of a PartcileDesigner particle system
  *
+ * <p>ParticleDesigner system options are usually stored in {@code *.pex} files. Those files
+ * may be loaded via the {@link defrac.xml.XML} class.
+ *
+ * <p><strong>Textures:</strong> The SystemOptions class will <strong>not</strong> load base-64 encoded
+ * and gzipped textures embedded in a PEX file. You must either provide the texture manually or
+ * a {@code <texture name="myfile.png"/>} node exists inside the PEX file. If such a node exists a
+ * given {@link TextureDataSupply} is asked to supply the texture.
  */
 public final class SystemOptions {
   private static final int DEFAULT_MAX_PARTICLES = 10;
@@ -125,12 +132,14 @@ public final class SystemOptions {
   public boolean exactAABB = DEFAULT_EXACT_AABB;
 
   @Nonnull
-  public static Future<SystemOptions> fromPEX(@Nonnull final Future<XML> pex) {
-    return pex.flatMap(SystemOptions::fromPEX);
+  public static Future<SystemOptions> fromPEX(@Nonnull final Future<XML> pex,
+                                              @Nonnull final TextureDataSupply textureDataSupply) {
+    return pex.flatMap(xml -> SystemOptions.fromPEX(xml, textureDataSupply));
   }
 
   @Nonnull
-  public static Future<SystemOptions> fromPEX(@Nonnull final XML pex) {
+  public static Future<SystemOptions> fromPEX(@Nonnull final XML pex,
+                                              @Nonnull final TextureDataSupply textureDataSupply) {
     final XMLElement textureElement = pex.root().firstChild("texture");
 
     if(textureElement == null) {
@@ -151,12 +160,12 @@ public final class SystemOptions {
 
     try {
       final Future<TextureData> textureDataFuture =
-        TextureDataResource.from(
-                name.stringValue(),
-                TextureDataFormat.RGBA,
-                TextureDataRepeat.NO_REPEAT,
-                TextureDataSmoothing.LINEAR,
-                false).load();
+          textureDataSupply.get(
+              name.stringValue(),
+              TextureDataFormat.RGBA,
+              TextureDataRepeat.NO_REPEAT,
+              TextureDataSmoothing.LINEAR,
+              false);
 
       promise.
           completeWith(

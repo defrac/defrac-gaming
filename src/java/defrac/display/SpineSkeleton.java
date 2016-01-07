@@ -17,6 +17,7 @@
 package defrac.display;
 
 import defrac.animation.Animatable;
+import defrac.animation.AnimationSystem;
 import defrac.animation.spine.*;
 import defrac.animation.spine.attachments.*;
 import defrac.display.event.UIEventTarget;
@@ -293,7 +294,8 @@ public final class SpineSkeleton extends DisplayObject {
                               @Nonnull final GLMatrix modelViewMatrix,
                               @Nonnull final Renderer renderer,
                               @Nonnull final BlendMode parentBlendMode,
-                              final float parentAlpha) {
+                              final float parentAlpha,
+                              final float pixelRatio) {
     final BlendMode displayObjectBlendMode = blendMode().inherit(parentBlendMode);
     final float alpha = parentAlpha * this.alpha;
 
@@ -306,6 +308,7 @@ public final class SpineSkeleton extends DisplayObject {
         renderer,
         displayObjectBlendMode,
         alpha,
+        pixelRatio,
         skeleton);
 
     content = renderer.zone(contents);
@@ -319,6 +322,7 @@ public final class SpineSkeleton extends DisplayObject {
                       @Nonnull final Renderer renderer,
                       @Nonnull final BlendMode displayObjectBlendMode,
                       final float displayObjectAlpha,
+                      final float pixelRatio,
                       @Nonnull final Skeleton skeleton) {
     final float alpha = displayObjectAlpha * skeleton.a;
 
@@ -365,6 +369,7 @@ public final class SpineSkeleton extends DisplayObject {
             renderer,
             displayObjectBlendMode,
             alpha,
+            pixelRatio,
             attachedSkeleton);
 
         continue;
@@ -419,8 +424,9 @@ public final class SpineSkeleton extends DisplayObject {
   }
 
   private void updateVertices(@Nonnull final Skeleton skeleton) {
-    final float skeletonX = skeleton.x();
-    final float skeletonY = skeleton.y();
+    final float pixelRatio = isAttachedToStage() ? stage().pixelRatio() : 1.0f;
+    final float skeletonX = skeleton.x() * pixelRatio;
+    final float skeletonY = skeleton.y() * pixelRatio;
 
     for(final Slot slot : skeleton.drawOrder()) {
       final Attachment attachment = slot.attachment();
@@ -435,7 +441,7 @@ public final class SpineSkeleton extends DisplayObject {
         triangleCount = regionAttachment.triangleCount();
 
         regionAttachment.computeWorldVertices(
-            skeletonX, skeletonY, slot,
+            skeletonX, skeletonY, slot, pixelRatio,
             vertices, uvs, colors, indices,
             vertexOffset, colorOffset, indexOffset);
       } else if(attachment instanceof MeshAttachment) {
@@ -445,7 +451,7 @@ public final class SpineSkeleton extends DisplayObject {
         triangleCount = meshAttachment.triangleCount();
 
         meshAttachment.computeWorldVertices(
-            skeletonX, skeletonY, slot,
+            skeletonX, skeletonY, slot, pixelRatio,
             vertices, uvs, colors, indices,
             vertexOffset, colorOffset, indexOffset);
       } else if(attachment instanceof SkinnedMeshAttachment) {
@@ -455,7 +461,7 @@ public final class SpineSkeleton extends DisplayObject {
         triangleCount = skinnedMeshAttachment.triangleCount();
 
         skinnedMeshAttachment.computeWorldVertices(
-            skeletonX, skeletonY, slot,
+            skeletonX, skeletonY, slot, pixelRatio,
             vertices, uvs, colors, indices,
             vertexOffset, colorOffset, indexOffset);
       } else if(attachment instanceof SkeletonAttachment) {
@@ -578,9 +584,17 @@ public final class SpineSkeleton extends DisplayObject {
   /**
    * Creates and returns an {@link Animatable} object for the given state object
    * @param state The animation state to use
-   * @return An animatable objects to be used with a {@link defrac.animation.Juggler}
+   * @return An animatable objects to be used with an {@link AnimationSystem}
    */
   public Animatable animatable(@Nonnull final AnimationState state) {
-    return (final double dt) -> { update(state, dt); return true; };
+    return (final AnimationSystem system, final double dt) -> { update(state, dt); return true; };
+  }
+
+  @Override
+  protected void onDetachFromStage() {
+    super.onDetachFromStage();
+    contents.clear();
+    lastVertexCount = -1;
+    lastTriangleCount = -1;
   }
 }
