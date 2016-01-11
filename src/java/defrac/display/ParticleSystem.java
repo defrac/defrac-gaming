@@ -17,7 +17,7 @@
 package defrac.display;
 
 import defrac.display.event.raw.EnterFrameEvent;
-import defrac.display.particle.ParticleStrategy;
+import defrac.display.particle.ParticleSystemStrategy;
 import defrac.display.render.RenderContent;
 import defrac.display.render.Renderer;
 import defrac.gl.GLMatrix;
@@ -30,9 +30,9 @@ import javax.annotation.Nullable;
  */
 public class ParticleSystem extends DisplayObject implements OnEnterFrameReceiver {
   @Nullable
-  private ParticleStrategy strategy;
+  private ParticleSystemStrategy strategy;
 
-  public ParticleSystem(@Nonnull final ParticleStrategy strategy) {
+  public ParticleSystem(@Nonnull final ParticleSystemStrategy strategy) {
     this.strategy(strategy);
   }
 
@@ -55,13 +55,13 @@ public class ParticleSystem extends DisplayObject implements OnEnterFrameReceive
   }
 
   @Nullable
-  public ParticleStrategy strategy() {
+  public ParticleSystemStrategy strategy() {
     return strategy;
   }
 
   @Nonnull
-  public ParticleSystem strategy(@Nullable final ParticleStrategy value) {
-    final ParticleStrategy oldValue = strategy;
+  public ParticleSystem strategy(@Nullable final ParticleSystemStrategy value) {
+    final ParticleSystemStrategy oldValue = strategy;
 
     if(value == oldValue) {
       return this;

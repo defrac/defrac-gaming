@@ -18,93 +18,25 @@ package defrac.display.particle.particleDesigner;
 
 import defrac.animation.AnimationSystem;
 import defrac.display.BlendMode;
-import defrac.display.particle.ParticleStrategy;
+import defrac.display.particle.ParticleSystemStrategy;
 import defrac.display.render.RenderContent;
 import defrac.display.render.Renderer;
+import defrac.event.EventDispatcher;
 import defrac.gl.GLMatrix;
 import defrac.util.MathUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 
 /**
  * The ParticleDesignerStrategy class is a strategy for ParticleDesigner particle systems
  */
-public final class ParticleDesignerStrategy implements ParticleStrategy {
+public final class ParticleDesignerStrategy implements ParticleSystemStrategy {
   private static final int COORDINATES_EACH_PARTICLE = 4;
   private static final int VERTICES_EACH_PARTICLE = COORDINATES_EACH_PARTICLE * 2;
   private static final int COLORS_EACH_PARTICLE = COORDINATES_EACH_PARTICLE * 4;
   private static final int UVS_EACH_PARTICLE = COORDINATES_EACH_PARTICLE * 2;
   private static final int TRIANGLES_EACH_PARTICLE = 2;
-
-  private static class Particle {
-    float posX;
-    float posY;
-
-    float velX;
-    float velY;
-
-    float startX;
-    float startY;
-
-    float colorR, colorG, colorB, colorA;
-    float colorDeltaR, colorDeltaG, colorDeltaB, colorDeltaA;
-
-    float rotationRad;
-    float rotationDelta;
-
-    float radialAccel;
-    float tangentAccel;
-
-    float radius;
-    float radiusDelta;
-
-    float angleRad;
-    float radiansPerSecond;
-
-    float size;
-    float sizeDelta;
-
-    float timeToLive;
-
-    public void copyFrom(@Nonnull final Particle that) {
-      this.posX = that.posX;
-      this.posY = that.posY;
-      this.velX = that.velX;
-      this.velY = that.velY;
-
-      this.startX = that.startX;
-      this.startY = that.startY;
-
-      this.colorR = that.colorR;
-      this.colorG = that.colorG;
-      this.colorB = that.colorB;
-      this.colorA = that.colorA;
-
-      this.colorDeltaR = that.colorDeltaR;
-      this.colorDeltaG = that.colorDeltaG;
-      this.colorDeltaB = that.colorDeltaB;
-      this.colorDeltaA = that.colorDeltaA;
-
-      this.rotationRad = that.rotationRad;
-      this.rotationDelta = that.rotationDelta;
-
-      this.radialAccel = that.radialAccel;
-      this.tangentAccel = that.tangentAccel;
-
-      this.radius = that.radius;
-      this.radiusDelta = that.radiusDelta;
-
-      this.angleRad = that.angleRad;
-      this.radiansPerSecond = that.radiansPerSecond;
-
-      this.size = that.size;
-      this.sizeDelta = that.sizeDelta;
-
-      this.timeToLive = that.timeToLive;
-    }
-  }
 
   @Nonnull
   private final Particle[] particles;
@@ -128,25 +60,29 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
   private final int numTriangles;
 
   @Nonnull
-  private final SystemOptions options;
+  private final ParticleDesignerSettings settings;
 
   @Nullable
   private RenderContent content;
 
   private boolean active = true;
 
-  private boolean cleanDeadParticles = false;
+  private float emissionRate = 0.0f;
 
-  private float emissionRate;
-  private float emitCounter = 0;
+  private float totalTimeSec = 0.0f;
 
-  public ParticleDesignerStrategy(@Nonnull final SystemOptions options) {
-    final int particleCount = options.maxParticles;
+  private float emitCounter = 0.0f;
 
-    this.options = options;
+  @Nonnull
+  private final EventDispatcher<ParticleSystemStrategy> onStop = EventDispatcher.create();
+
+  public ParticleDesignerStrategy(@Nonnull final ParticleDesignerSettings settings) {
+    final int particleCount = settings.maxParticles;
+
+    this.settings = settings;
     this.particles = new Particle[particleCount];
 
-    emissionRate = options.emissionRate();
+    emissionRate = settings.emissionRate();
 
     numVertices = particleCount * COORDINATES_EACH_PARTICLE;
     numTriangles = particleCount * TRIANGLES_EACH_PARTICLE;
@@ -160,14 +96,14 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     int indicesIndex = 0;
     int vertexOffset = 0;
 
-    final float uv00u = options.texture.uv00u;
-    final float uv00v = options.texture.uv00v;
-    final float uv10u = options.texture.uv10u;
-    final float uv10v = options.texture.uv10v;
-    final float uv11u = options.texture.uv11u;
-    final float uv11v = options.texture.uv11v;
-    final float uv01u = options.texture.uv01u;
-    final float uv01v = options.texture.uv01v;
+    final float uv00u = settings.texture.uv00u;
+    final float uv00v = settings.texture.uv00v;
+    final float uv10u = settings.texture.uv10u;
+    final float uv10v = settings.texture.uv10v;
+    final float uv11u = settings.texture.uv11u;
+    final float uv11v = settings.texture.uv11v;
+    final float uv01u = settings.texture.uv01u;
+    final float uv01v = settings.texture.uv01v;
 
     for(int i = 0; i < particleCount; ++i) {
       particles[i] = new Particle();
@@ -217,8 +153,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         projectionMatrix,
         modelViewMatrix,
         parentAlpha,
-        options.blendMode.inherit(parentBlendMode),
-        options.texture.textureData,
+        settings.blendMode.inherit(parentBlendMode),
+        settings.texture.textureData,
         vertices, 0,
         uvs, 0,
         colors, 0,
@@ -234,10 +170,31 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     return active;
   }
 
+  @Nonnull
   @Override
-  public ParticleStrategy active(boolean value) {
+  public ParticleSystemStrategy active(boolean value) {
     active = value;
     return this;
+  }
+
+  @Nonnull
+  public ParticleSystemStrategy reset() {
+    totalTimeSec = 0.0f;
+    emitCounter = 0;
+    active(true);
+
+
+    for(final Particle particle : particles) {
+      particle.timeToLive = 0.0f;
+    }
+
+    return this;
+  }
+
+  @Nonnull
+  @Override
+  public EventDispatcher<ParticleSystemStrategy> onStop() {
+    return onStop;
   }
 
   @Override
@@ -248,13 +205,20 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     if(active && emissionRate != 0.0f) {
       final float rate = 1.0f / emissionRate;
 
-      if(particleCount < options.maxParticles) {
+      if(particleCount < settings.maxParticles) {
         emitCounter += dt;
       }
 
-      while(particleCount < options.maxParticles && emitCounter > rate) {
+      while(particleCount < settings.maxParticles && emitCounter > rate) {
         emitParticle();
         emitCounter -= rate;
+      }
+
+      totalTimeSec += dt;
+
+      if(settings.duration > 0 && totalTimeSec >= settings.duration) {
+        active(false);
+        onStop.dispatch(this);
       }
     }
 
@@ -278,13 +242,6 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
           // Option (1) sounds good at first but bashes the locality
           // whereas option (2) needs more assignments but keeps locality
           particles[i].copyFrom(particles[lastParticleIndex]);
-
-          if(cleanDeadParticles) {
-            final int vertexIndex = lastParticleIndex * VERTICES_EACH_PARTICLE;
-            final int colorIndex = lastParticleIndex * COLORS_EACH_PARTICLE;
-            Arrays.fill(vertices, vertexIndex, vertexIndex + 8, 0.0f);
-            Arrays.fill(colors, colorIndex, colorIndex + 16, 0.0f);
-          }
         }
 
         --particleCount;
@@ -296,14 +253,14 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
 
   private void updateParticle(@Nonnull final Particle particle, final int index, final float dt) {
     { // UPDATE
-      if(options.emitterType == EmitterType.RADIAL) {
+      if(settings.emitterType == EmitterType.RADIAL) {
         particle.angleRad += particle.radiansPerSecond * dt;
         particle.radius += particle.radiusDelta * dt;
 
-        particle.posX = options.source.x - MathUtil.cos(particle.angleRad) * particle.radius;
-        particle.posY = options.source.y - MathUtil.sin(particle.angleRad) * particle.radius;
+        particle.posX = settings.source.x - MathUtil.cos(particle.angleRad) * particle.radius;
+        particle.posY = settings.source.y - MathUtil.sin(particle.angleRad) * particle.radius;
 
-        if (particle.radius < options.minRadius) {
+        if (particle.radius < settings.minRadius) {
           particle.timeToLive = 0;
         }
       } else {
@@ -323,8 +280,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
         float tx = ny * particle.tangentAccel, ty = nx * particle.tangentAccel;
         float rx = nx * particle.radialAccel , ry = ny * particle.radialAccel;
 
-        particle.velX += dt * (options.gravity.x + rx + tx);
-        particle.velY += dt * (options.gravity.y + ry + ty);
+        particle.velX += dt * (settings.gravity.x + rx + tx);
+        particle.velY += dt * (settings.gravity.y + ry + ty);
         particle.posX += particle.velX * dt;
         particle.posY += particle.velY * dt;
       }
@@ -366,6 +323,7 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
 
       if(rotation != 0.0f) {
         final float tL = -halfSize;
+        @SuppressWarnings("UnnecessaryLocalVariable")
         final float bR =  halfSize;
         final float cos = MathUtil.cos(rotation);
         final float sin = MathUtil.sin(rotation);
@@ -404,55 +362,55 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
 
   @Override
   public boolean emitParticle() {
-    if(particleCount == options.maxParticles) {
+    if(particleCount == settings.maxParticles) {
       return false;
     }
 
     final Particle particle = particles[particleCount];
 
-    particle.posX = options.source.x + random(options.sourceVariance.x);
-    particle.posY = options.source.y + random(options.sourceVariance.y);
+    particle.posX = settings.source.x + random(settings.sourceVariance.x);
+    particle.posY = settings.source.y + random(settings.sourceVariance.y);
 
-    particle.startX = options.source.x;
-    particle.startY = options.source.y;
+    particle.startX = settings.source.x;
+    particle.startY = settings.source.y;
 
-    final float direction = MathUtil.degToRad(options.angle + random(options.angleVariance));
-    final float speed = options.speed + random(options.speedVariance);
+    final float direction = MathUtil.degToRad(settings.angle + random(settings.angleVariance));
+    final float speed = settings.speed + random(settings.speedVariance);
 
     particle.velX = MathUtil.cos(direction) * speed;
     particle.velY = MathUtil.sin(direction) * speed;
 
-    final float timeToLive = Math.max(0.0f, options.particleLifespan + random(options.particleLifeSpanVariance));
+    final float timeToLive = Math.max(0.0f, settings.particleLifespan + random(settings.particleLifeSpanVariance));
 
     particle.timeToLive = timeToLive;
 
-    final float startRadius = options.maxRadius + random(options.maxRadiusVariance);
-    final float endRadius = options.minRadius + random(options.minRadiusVariance);
+    final float startRadius = settings.maxRadius + random(settings.maxRadiusVariance);
+    final float endRadius = settings.minRadius + random(settings.minRadiusVariance);
 
     particle.radius = startRadius;
     particle.radiusDelta = (endRadius - startRadius) / timeToLive;
 
-    particle.angleRad = MathUtil.degToRad(options.angle + random(options.angleVariance));
-    particle.radiansPerSecond = MathUtil.degToRad(options.rotatePerSecond + random(options.rotatePerSecondVariance));
+    particle.angleRad = MathUtil.degToRad(settings.angle + random(settings.angleVariance));
+    particle.radiansPerSecond = MathUtil.degToRad(settings.rotatePerSecond + random(settings.rotatePerSecondVariance));
 
-    particle.radialAccel = options.radialAcceleration + random(options.radialAccelerationVariance);
-    particle.tangentAccel = options.tangentialAcceleration + random(options.tangentialAccelerationVariance);
+    particle.radialAccel = settings.radialAcceleration + random(settings.radialAccelerationVariance);
+    particle.tangentAccel = settings.tangentialAcceleration + random(settings.tangentialAccelerationVariance);
 
-    final float startSize = options.startParticleSize + random(options.startParticleSizeVariance);
-    final float finishSize = options.finishParticleSize + random(options.finishParticleSizeVariance);
+    final float startSize = settings.startParticleSize + random(settings.startParticleSizeVariance);
+    final float finishSize = settings.finishParticleSize + random(settings.finishParticleSizeVariance);
 
     particle.size = Math.max(0.0f, startSize);
     particle.sizeDelta = (finishSize - startSize) / timeToLive;
 
-    float r0 = options.startColor.r + random(options.startColorVariance.r);
-    float g0 = options.startColor.g + random(options.startColorVariance.g);
-    float b0 = options.startColor.b + random(options.startColorVariance.b);
-    float a0 = options.startColor.a + random(options.startColorVariance.a);
+    float r0 = settings.startColor.r + random(settings.startColorVariance.r);
+    float g0 = settings.startColor.g + random(settings.startColorVariance.g);
+    float b0 = settings.startColor.b + random(settings.startColorVariance.b);
+    float a0 = settings.startColor.a + random(settings.startColorVariance.a);
 
-    float r1 = options.finishColor.r + random(options.finishColorVariance.r);
-    float g1 = options.finishColor.g + random(options.finishColorVariance.g);
-    float b1 = options.finishColor.b + random(options.finishColorVariance.b);
-    float a1 = options.finishColor.a + random(options.finishColorVariance.a);
+    float r1 = settings.finishColor.r + random(settings.finishColorVariance.r);
+    float g1 = settings.finishColor.g + random(settings.finishColorVariance.g);
+    float b1 = settings.finishColor.b + random(settings.finishColorVariance.b);
+    float a1 = settings.finishColor.a + random(settings.finishColorVariance.a);
 
     particle.colorR = r0;
     particle.colorG = g0;
@@ -464,8 +422,8 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
     particle.colorDeltaB = (b1 - b0) / timeToLive;
     particle.colorDeltaA = (a1 - a0) / timeToLive;
 
-    final float rotationStart = options.rotationStart + random(options.rotationStartVariance);
-    final float rotationEnd = options.rotationEnd + random(options.rotationEndVariance);
+    final float rotationStart = settings.rotationStart + random(settings.rotationStartVariance);
+    final float rotationEnd = settings.rotationEnd + random(settings.rotationEndVariance);
 
     particle.rotationRad = MathUtil.degToRad(rotationStart);
     particle.rotationDelta = MathUtil.degToRad((rotationEnd - rotationStart) / timeToLive);
@@ -477,5 +435,73 @@ public final class ParticleDesignerStrategy implements ParticleStrategy {
 
   private static float random(final float value) {
     return (float)(Math.random() * 2.0 - 1.0) * value;
+  }
+
+  private static class Particle {
+    float posX;
+    float posY;
+
+    float velX;
+    float velY;
+
+    float startX;
+    float startY;
+
+    float colorR, colorG, colorB, colorA;
+    float colorDeltaR, colorDeltaG, colorDeltaB, colorDeltaA;
+
+    float rotationRad;
+    float rotationDelta;
+
+    float radialAccel;
+    float tangentAccel;
+
+    float radius;
+    float radiusDelta;
+
+    float angleRad;
+    float radiansPerSecond;
+
+    float size;
+    float sizeDelta;
+
+    float timeToLive;
+
+    void copyFrom(@Nonnull final Particle that) {
+      this.posX = that.posX;
+      this.posY = that.posY;
+      this.velX = that.velX;
+      this.velY = that.velY;
+
+      this.startX = that.startX;
+      this.startY = that.startY;
+
+      this.colorR = that.colorR;
+      this.colorG = that.colorG;
+      this.colorB = that.colorB;
+      this.colorA = that.colorA;
+
+      this.colorDeltaR = that.colorDeltaR;
+      this.colorDeltaG = that.colorDeltaG;
+      this.colorDeltaB = that.colorDeltaB;
+      this.colorDeltaA = that.colorDeltaA;
+
+      this.rotationRad = that.rotationRad;
+      this.rotationDelta = that.rotationDelta;
+
+      this.radialAccel = that.radialAccel;
+      this.tangentAccel = that.tangentAccel;
+
+      this.radius = that.radius;
+      this.radiusDelta = that.radiusDelta;
+
+      this.angleRad = that.angleRad;
+      this.radiansPerSecond = that.radiansPerSecond;
+
+      this.size = that.size;
+      this.sizeDelta = that.sizeDelta;
+
+      this.timeToLive = that.timeToLive;
+    }
   }
 }

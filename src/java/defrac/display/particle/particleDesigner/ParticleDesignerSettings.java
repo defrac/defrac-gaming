@@ -33,17 +33,17 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 
 /**
- * The SystemOptions class represents the configuration of a PartcileDesigner particle system
+ * The ParticleDesignerSettings class represents the configuration of a PartcileDesigner particle system
  *
  * <p>ParticleDesigner system options are usually stored in {@code *.pex} files. Those files
  * may be loaded via the {@link defrac.xml.XML} class.
  *
- * <p><strong>Textures:</strong> The SystemOptions class will <strong>not</strong> load base-64 encoded
+ * <p><strong>Textures:</strong> The ParticleDesignerSettings class will <strong>not</strong> load base-64 encoded
  * and gzipped textures embedded in a PEX file. You must either provide the texture manually or
  * a {@code <texture name="myfile.png"/>} node exists inside the PEX file. If such a node exists a
  * given {@link TextureDataSupply} is asked to supply the texture.
  */
-public final class SystemOptions {
+public final class ParticleDesignerSettings {
   private static final int DEFAULT_MAX_PARTICLES = 10;
   private static final float DEFAULT_PARTICLE_LIFESPAN = 1.0f;
   private static final float DEFAULT_PARTICLE_LIFESPAN_VARIANCE = 0.0f;
@@ -132,14 +132,14 @@ public final class SystemOptions {
   public boolean exactAABB = DEFAULT_EXACT_AABB;
 
   @Nonnull
-  public static Future<SystemOptions> fromPEX(@Nonnull final Future<XML> pex,
-                                              @Nonnull final TextureDataSupply textureDataSupply) {
-    return pex.flatMap(xml -> SystemOptions.fromPEX(xml, textureDataSupply));
+  public static Future<ParticleDesignerSettings> fromPEX(@Nonnull final Future<XML> pex,
+                                                         @Nonnull final TextureDataSupply textureDataSupply) {
+    return pex.flatMap(xml -> ParticleDesignerSettings.fromPEX(xml, textureDataSupply));
   }
 
   @Nonnull
-  public static Future<SystemOptions> fromPEX(@Nonnull final XML pex,
-                                              @Nonnull final TextureDataSupply textureDataSupply) {
+  public static Future<ParticleDesignerSettings> fromPEX(@Nonnull final XML pex,
+                                                         @Nonnull final TextureDataSupply textureDataSupply) {
     final XMLElement textureElement = pex.root().firstChild("texture");
 
     if(textureElement == null) {
@@ -156,7 +156,7 @@ public final class SystemOptions {
       return Futures.failure(new IOException("Missing name of texture"));
     }
 
-    final Promise<SystemOptions> promise = Promises.create();
+    final Promise<ParticleDesignerSettings> promise = Promises.create();
 
     try {
       final Future<TextureData> textureDataFuture =
@@ -179,16 +179,16 @@ public final class SystemOptions {
 
   @SuppressWarnings("ConstantConditions")
   @Nonnull
-  public static SystemOptions fromPEX(@Nonnull final XML pex,
-                                      @Nonnull final Texture texture) {
+  public static ParticleDesignerSettings fromPEX(@Nonnull final XML pex,
+                                                 @Nonnull final Texture texture) {
     return fromPEX((XMLElement)pex.root(), texture);
   }
 
   @SuppressWarnings("ConstantConditions")
   @Nonnull
-  public static SystemOptions fromPEX(@Nonnull final XMLElement pex,
-                                      @Nonnull final Texture texture) {
-    final SystemOptions result = new SystemOptions();
+  public static ParticleDesignerSettings fromPEX(@Nonnull final XMLElement pex,
+                                                 @Nonnull final Texture texture) {
+    final ParticleDesignerSettings result = new ParticleDesignerSettings();
 
     result.texture = texture;
 
@@ -226,7 +226,7 @@ public final class SystemOptions {
     if(pex.firstChild("finishParticleSize") != null) {
       result.finishParticleSize = readFloat(pex, "finishParticleSize", DEFAULT_FINISH_PARTICLE_SIZE);
     } else {
-      // Startling *.pex files contain "FinishParticleSize" instead of "finishParticleSize"
+      // Starling *.pex files contain "FinishParticleSize" instead of "finishParticleSize"
       result.finishParticleSize = readFloat(pex, "FinishParticleSize", DEFAULT_FINISH_PARTICLE_SIZE);
     }
     result.finishParticleSizeVariance = readFloat(pex, "finishParticleSizeVariance", DEFAULT_FINISH_PARTICLE_SIZE_VARIANCE);
@@ -314,7 +314,7 @@ public final class SystemOptions {
     return new BlendMode(src, dst);
   }
 
-  public SystemOptions() {}
+  public ParticleDesignerSettings() {}
 
   public float emissionRate() {
     return maxParticles / particleLifespan;
