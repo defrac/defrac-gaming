@@ -7,6 +7,7 @@ import defrac.json.JSONObject;
 import defrac.json.JSONString;
 import defrac.lang.Preconditions;
 import defrac.util.ArrayUtil;
+import defrac.util.Color;
 import defrac.util.Dictionary;
 import defrac.util.Platform;
 
@@ -35,6 +36,9 @@ public class LayoutContext {
   @Nonnull
   private DisplayObject[] scopeStack = DisplayObject.ARRAY_FACTORY.create(256);
 
+  @Nonnull
+  final LayoutObjectBuilderFactory builderFactory;
+
   private int stackSize = 0;
 
   @Nullable
@@ -44,17 +48,22 @@ public class LayoutContext {
   private final EvalParser parser = new EvalParser();
 
   public LayoutContext() {
-    if(Platform.isAndroid()) {
-      variant = LayoutConstants.VARIANT_ANDROID;
-    } else if(Platform.isIOS()) {
-      variant = LayoutConstants.VARIANT_IOS;
-    } else if(Platform.isJVM()) {
-      variant = LayoutConstants.VARIANT_JVM;
-    } else if(Platform.isWeb()) {
-      variant = LayoutConstants.VARIANT_WEB;
-    }
+    builderFactory = new LayoutObjectBuilderFactory(this);
 
+    initVariant();
     registerDefaultBuilders();
+  }
+
+  private void initVariant() {
+    if(Platform.isAndroid()) {
+      variant(LayoutConstants.VARIANT_ANDROID);
+    } else if(Platform.isIOS()) {
+      variant(LayoutConstants.VARIANT_IOS);
+    } else if(Platform.isJVM()) {
+      variant(LayoutConstants.VARIANT_JVM);
+    } else if(Platform.isWeb()) {
+      variant(LayoutConstants.VARIANT_WEB);
+    }
   }
 
   @Nullable
@@ -77,7 +86,7 @@ public class LayoutContext {
     builders.put(type, factory);
   }
 
-  public void defineVariable(@Nonnull final String symbol,
+  public void defineConstant(@Nonnull final String symbol,
                              @Nonnull final String value) {
     variables.put(symbol, value);
   }
@@ -87,13 +96,35 @@ public class LayoutContext {
     return displayObjects.get(id);
   }
 
+  void storeDisplayObjectForId(@Nonnull final String identifier,
+                               @Nonnull final DisplayObject displayObject) {
+    Preconditions.checkArgument(!"parent".equals(identifier), "\"parent\" is a reserved identifier");
+    Preconditions.checkArgument(!"this".equals(identifier), "\"this\" is a reserved identifier");
+
+    if(null != displayObjects.put(identifier, displayObject)) {
+      throw new LayoutException("Duplicate identifier \""+identifier+'"');
+    }
+  }
+
   @Nullable
   public LayoutObjectBuilder<?> findBuilderByType(@Nonnull final String type) {
     return builders.get(type);
   }
 
+  final boolean isVariant(@Nonnull final String property) {
+    return property.endsWith("."+LayoutConstants.VARIANT_ANDROID)
+        || property.endsWith("."+LayoutConstants.VARIANT_IOS)
+        || property.endsWith("."+LayoutConstants.VARIANT_JVM)
+        || property.endsWith("."+LayoutConstants.VARIANT_WEB);
+  }
+
   @Nonnull
-  private String interpolateString(@Nonnull final String input) {
+  public String interpolateString(@Nonnull final JSON input) {
+    return interpolateString(input.stringValue());
+  }
+
+  @Nonnull
+  public String interpolateString(@Nonnull final String input) {
     return stringInterpolator.interpolate(input);
   }
 
@@ -103,11 +134,11 @@ public class LayoutContext {
   }
 
   JSON resolveProperty(@Nonnull final JSONObject json, final String key, final JSON defaultValue) {
-    if(variant == null) {
+    if(variant() == null) {
       return json.opt(key, defaultValue);
     }
 
-    final JSON resultForVariant = json.opt(key+"."+variant, defaultValue);
+    final JSON resultForVariant = json.opt(key+"."+variant(), defaultValue);
 
     if(resultForVariant == defaultValue) {
       return json.opt(key, defaultValue);
@@ -141,7 +172,17 @@ public class LayoutContext {
 
   float resolveValue(@Nonnull final JSON value) {
     if(value.isString()) {
-      return parser.parse(interpolateString(value.stringValue())).evaluate(this);
+      final String stringValue = interpolateString(value.stringValue());
+
+      if(stringValue.isEmpty()) {
+        throw new LayoutException("Empty string value");
+      }
+
+      if(stringValue.charAt(0) == '#') {
+        return Color.valueOf(stringValue);
+      }
+
+      return parser.parse(stringValue).evaluate(this);
     }
 
     return value.floatValue();
@@ -165,46 +206,6 @@ public class LayoutContext {
         ).stringValue());
   }
 
-  @Nullable
-  DisplayObject currentScope() {
-    Preconditions.checkState(stackSize > 0);
-    return scopeStack[stackSize - 1];
-  }
-
-  @Nonnull
-  DisplayObject parentScope() {
-    Preconditions.checkState(stackSize > 0);
-    return scopeStack[stackSize - 2];
-  }
-
-  void pushScope(@Nullable final DisplayObject displayObject) {
-    scopeStack = ArrayUtil.append(
-        scopeStack,
-        stackSize++,
-        displayObject,
-        DisplayObject.ARRAY_FACTORY);
-  }
-
-  void currentScope(@Nonnull final DisplayObject displayObject) {
-    Preconditions.checkState(scopeStack[stackSize - 1] == null);
-    scopeStack[stackSize - 1] = displayObject;
-  }
-
-  void popScope() {
-    Preconditions.checkState(stackSize > 0);
-    scopeStack[--stackSize] = null;
-  }
-
-  void storeDisplayObjectForId(@Nonnull final String identifier,
-                               @Nonnull final DisplayObject displayObject) {
-    Preconditions.checkArgument(!"parent".equals(identifier), "\"parent\" is a reserved identifier");
-    Preconditions.checkArgument(!"this".equals(identifier), "\"this\" is a reserved identifier");
-
-    if(null != displayObjects.put(identifier, displayObject)) {
-      throw new LayoutException("Duplicate identifier \""+identifier+'"');
-    }
-  }
-
   @Nonnull
   BlendMode resolveBlendMode(@Nonnull final String value) {
     switch(value.toLowerCase()) {
@@ -218,8 +219,8 @@ public class LayoutContext {
     }
   }
 
-  float fieldGet(@Nonnull final String receiver,
-                 @Nonnull final String symbol) {
+  float resolveField(@Nonnull final String receiver,
+                     @Nonnull final String symbol) {
     final DisplayObject displayObject;
 
     switch(receiver) {
@@ -254,5 +255,35 @@ public class LayoutContext {
       case KEY_VISIBLE: return displayObject.visible() ? 1.0f : 0.0f;
       default: throw new LayoutException("Unsupported symbol \""+symbol+'"');
     }
+  }
+
+  @Nullable
+  DisplayObject currentScope() {
+    Preconditions.checkState(stackSize > 0);
+    return scopeStack[stackSize - 1];
+  }
+
+  @Nonnull
+  DisplayObject parentScope() {
+    Preconditions.checkState(stackSize > 0);
+    return scopeStack[stackSize - 2];
+  }
+
+  void pushScope(@Nullable final DisplayObject displayObject) {
+    scopeStack = ArrayUtil.append(
+        scopeStack,
+        stackSize++,
+        displayObject,
+        DisplayObject.ARRAY_FACTORY);
+  }
+
+  void currentScope(@Nonnull final DisplayObject displayObject) {
+    Preconditions.checkState(scopeStack[stackSize - 1] == null);
+    scopeStack[stackSize - 1] = displayObject;
+  }
+
+  void popScope() {
+    Preconditions.checkState(stackSize > 0);
+    scopeStack[--stackSize] = null;
   }
 }

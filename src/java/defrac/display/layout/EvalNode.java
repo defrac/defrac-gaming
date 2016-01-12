@@ -113,7 +113,7 @@ abstract class EvalNode {
 
     @Override
     public float evaluate(@Nonnull final LayoutContext context) {
-      return context.fieldGet(receiver, symbol);
+      return context.resolveField(receiver, symbol);
     }
   }
 }

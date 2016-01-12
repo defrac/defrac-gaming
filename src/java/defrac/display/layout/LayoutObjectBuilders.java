@@ -53,7 +53,9 @@ public final class LayoutObjectBuilders {
   public static final LayoutObjectBuilder<Quad> QUAD_FACTORY = new LayoutObjectBuilder<Quad>() {
     @Nonnull
     @Override
-    protected Quad newInstance(final float width, final float height) {
+    protected Quad newInstance(@Nonnull final LayoutContext context,
+                               final float width,
+                               final float height) {
       return new Quad(width, height, 0x00000000);
     }
 
@@ -67,7 +69,7 @@ public final class LayoutObjectBuilders {
 
       if(null != property) {
         if(property.isString()) {
-          quad.color(Color.valueOf(property.stringValue()));
+          quad.color(Color.valueOf(context.interpolateString(property.stringValue())));
         } else {
           quad.color(property.intValue());
         }

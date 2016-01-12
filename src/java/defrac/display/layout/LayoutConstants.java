@@ -1,6 +1,9 @@
 package defrac.display.layout;
 
+import defrac.lang.Sets;
+
 import javax.annotation.Nonnull;
+import java.util.Set;
 
 /**
  *
@@ -30,6 +33,31 @@ public final class LayoutConstants {
   @Nonnull public static final String KEY_ALPHA = "alpha";
   @Nonnull public static final String KEY_BLEND_MODE = "blendMode";
   @Nonnull public static final String KEY_SCROLL_RECT = "scrollRect";
+  
+  @Nonnull public static final Set<String> DEFAULT_PROPERTIES = Sets.of(
+      KEY_TYPE,
+      KEY_CHILDREN,
+      KEY_WIDTH,
+      KEY_HEIGHT,
+      KEY_ID,
+      KEY_REPEAT,
+      KEY_X,
+      KEY_Y,
+      KEY_TOP,
+      KEY_RIGHT,
+      KEY_BOTTOM,
+      KEY_LEFT,
+      KEY_SCALE_X,
+      KEY_SCALE_Y,
+      KEY_SCALE,
+      KEY_REG_X,
+      KEY_REG_Y,
+      KEY_PIVOT,
+      KEY_VISIBLE,
+      KEY_ROTATION,
+      KEY_ALPHA,
+      KEY_BLEND_MODE,
+      KEY_SCROLL_RECT);
 
   @Nonnull public static final String VARIANT_ANDROID = "android";
   @Nonnull public static final String VARIANT_IOS = "ios";

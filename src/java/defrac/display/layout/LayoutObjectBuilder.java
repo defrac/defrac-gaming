@@ -22,7 +22,8 @@ public abstract class LayoutObjectBuilder<D extends DisplayObject> {
   LayoutObjectBuilder() {}
 
   @Nonnull
-  protected abstract D newInstance(final float width,
+  protected abstract D newInstance(@Nonnull final LayoutContext context,
+                                   final float width,
                                    final float height);
 
   protected void applyProperties(@Nonnull final LayoutContext context,
@@ -105,7 +106,7 @@ public abstract class LayoutObjectBuilder<D extends DisplayObject> {
     final float parentHeight = context.parentScope().height();
     final float width = context.resolvePercentage(parentWidth, jsonWidth);
     final float height = context.resolvePercentage(parentHeight, jsonHeight);
-    final D displayObject = newInstance(width, height);
+    final D displayObject = newInstance(context, width, height);
 
     context.currentScope(displayObject);
 
@@ -129,7 +130,9 @@ public abstract class LayoutObjectBuilder<D extends DisplayObject> {
 
     @Nonnull
     @Override
-    protected D newInstance(final float width, final float height) {
+    protected D newInstance(@Nonnull final LayoutContext context,
+                            final float width,
+                            final float height) {
       return factory.newInstance(width, height);
     }
 

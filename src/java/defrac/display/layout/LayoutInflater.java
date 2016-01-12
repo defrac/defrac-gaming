@@ -28,8 +28,7 @@ public final class LayoutInflater {
     context.pushScope(root);
 
     inflate(root, layout.asObject());
-
-    addChildren(root, layout.asArray(JSONArray.EMPTY));
+    inflateChildren(root, layout.asArray(JSONArray.EMPTY));
 
     context.popScope();
   }
@@ -51,7 +50,7 @@ public final class LayoutInflater {
   private void inflate(@Nonnull final DisplayObjectContainer parent,
                        @Nonnull final JSONObject json,
                        final int repeatIndex) {
-    context.defineVariable(VARIABLE_REPEAT_INDEX, String.valueOf(repeatIndex));
+    context.defineConstant(VARIABLE_REPEAT_INDEX, String.valueOf(repeatIndex));
 
     final String type = json.getString(KEY_TYPE);
 
@@ -62,27 +61,32 @@ public final class LayoutInflater {
     final LayoutObjectBuilder<?> builder =
         context.findBuilderByType(type);
 
-    if(builder == null) {
-      return;
-    }
-
     context.pushScope(null);
 
-    final DisplayObject displayObject =
-        builder.build(context, json);
+    final DisplayObject displayObject;
+
+    if(builder == null) {
+      final LayoutObjectBuilder<DisplayObject> newBuilder =
+          context.builderFactory.newInstance(type);
+      displayObject = newBuilder.build(context, json);
+    } else {
+      displayObject = builder.build(context, json);
+    }
 
     parent.addChild(displayObject);
 
     if(displayObject instanceof DisplayObjectContainer) {
       final DisplayObjectContainer container = (DisplayObjectContainer)displayObject;
-      addChildren(container, json.optArray(KEY_CHILDREN));
+      inflateChildren(container, json.optArray(KEY_CHILDREN));
     }
 
     context.popScope();
   }
 
-  private void addChildren(@Nonnull final DisplayObjectContainer container,
-                           @Nonnull final JSONArray children) {
+
+
+  private void inflateChildren(@Nonnull final DisplayObjectContainer container,
+                               @Nonnull final JSONArray children) {
     for(final JSON child : children) {
       inflate(container, child.asObject());
     }
