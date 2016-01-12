@@ -8,44 +8,44 @@ import static defrac.display.layout.EvalTokens.*;
  *
  */
 final class EvalParser {
-  // See https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
-
   @Nonnull
   private final EvalScanner scanner;
 
-  private int current = -1;
+  private int token = -1;
 
   public EvalParser() {
     scanner = new EvalScanner();
   }
 
-  private int next() {
-    if(current == -1) {
+  private int currentToken() {
+    if(token == -1) {
       do {
-        current = scanner.nextToken();
-      } while(current == WHITESPACE);
+        token = scanner.nextToken();
+      } while(token == WHITESPACE);
     }
 
-    return current;
+    return token;
   }
 
-  private void consume() {
-    current = -1;
+  private void consumeToken() {
+    token = -1;
   }
 
-  private void expect(final int token) {
-    if(next() == token) {
-      consume();
+  private void expectToken(final int token) {
+    if(currentToken() == token) {
+      consumeToken();
     } else {
-      throw new RuntimeException("Expected token "+token+", got "+current);
+      throw new LayoutException("Expected token "+EvalTokens.toString(token)+", got "+EvalTokens.toString(this.token)+". Expression: "+scanner.input);
     }
   }
 
   @Nonnull
   public EvalNode parse(@Nonnull final String input) {
+    // Precedence Climbing algorithm
+    // https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm#climbing
     scanner.reset(input);
     final EvalNode node = exp(0);
-    expect(EOL);
+    expectToken(EOL);
     return node;
   }
 
@@ -53,9 +53,9 @@ final class EvalParser {
   private EvalNode exp(final int parentPrecedence) {
     EvalNode lhs = P();
 
-    while(isBinary(next()) && precedenceOf(next()) >= parentPrecedence) {
-      final int binaryOperator = next();
-      consume();
+    while(isBinary(currentToken()) && precedenceOf(currentToken()) >= parentPrecedence) {
+      final int binaryOperator = currentToken();
+      consumeToken();
       final int newParentPrecedence = 1 + precedenceOf(binaryOperator);
       final EvalNode rhs = exp(newParentPrecedence);
       lhs = EvalNode.binary(lhs, binaryOperator, rhs);
@@ -66,48 +66,51 @@ final class EvalParser {
 
   @Nonnull
   private EvalNode P() {
-    final int token = next();
+    final int token = currentToken();
 
     if(token == SUB) {
-      consume();
+      consumeToken();
       final EvalNode expression = exp(precedenceOf(token));
       return EvalNode.unary(token, expression);
     }
 
     if(token == LPAREN) {
-      consume();
+      consumeToken();
       final EvalNode expression = exp(0);
-      expect(RPAREN);
+      expectToken(RPAREN);
       return expression;
     }
 
     if(token == NUMBER) {
       final EvalNode literal = EvalNode.literal(Float.parseFloat(scanner.tokenValue()));
-      consume();
+      consumeToken();
       return literal;
     }
 
     if(token == IDENTIFIER) {
       final String receiver = scanner.tokenValue();
-      consume();
+      consumeToken();
 
       if("pi".equalsIgnoreCase(receiver) || "π".equalsIgnoreCase(receiver)) {
         return EvalNode.literal((float)Math.PI);
       }
 
-      expect(DOT);
-      if(next() != IDENTIFIER) {
-        throw new RuntimeException("Expected identifier");
+      expectToken(DOT);
+
+      if(currentToken() != IDENTIFIER) {
+        throw new LayoutException("Expected identifier. Expression: "+scanner.input);
       }
+
       final String member = scanner.tokenValue();
-      consume();
+      consumeToken();
+
       return EvalNode.fieldGet(receiver, member);
     }
 
-    throw new RuntimeException("Expected literal or paren expression, got "+token);
+    throw new LayoutException("Expected literal, identifier or paren expression; got "+token+". Expression: "+scanner.input);
   }
 
-  private boolean isBinary(final int token) {
+  private static boolean isBinary(final int token) {
     return token == ADD
         || token == SUB
         || token == MUL
@@ -115,7 +118,7 @@ final class EvalParser {
         || token == MOD;
   }
 
-  private int precedenceOf(final int token) {
+  private static int precedenceOf(final int token) {
     switch(token) {
       case ADD:
       case SUB: return 1;

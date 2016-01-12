@@ -2,6 +2,8 @@ package defrac.display.layout;
 
 import javax.annotation.Nonnull;
 
+import static defrac.display.layout.EvalTokens.*;
+
 /**
  *
  */
@@ -52,13 +54,15 @@ abstract class EvalNode {
       final float rhs = right.evaluate(context);
 
       switch(operator) {
-        case EvalTokens.ADD: return lhs + rhs;
-        case EvalTokens.SUB: return lhs - rhs;
-        case EvalTokens.MUL: return lhs * rhs;
-        case EvalTokens.DIV: return lhs / rhs;
-        case EvalTokens.MOD: return lhs % rhs;
+        case ADD: return lhs + rhs;
+        case SUB: return lhs - rhs;
+        case MUL: return lhs * rhs;
+        case DIV: return lhs / rhs;
+        case MOD: return lhs % rhs;
       }
 
+      // If this exception is reached, we created a binary node in the parser
+      // for the wrong operator
       throw new IllegalStateException();
     }
   }

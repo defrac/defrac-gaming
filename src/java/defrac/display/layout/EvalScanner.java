@@ -13,7 +13,7 @@ final class EvalScanner {
   private static final char[] SINGLE_CHAR_TOKENS = new char[SINGLE_CHAR_TOKENS_LENGTH];
 
   @Nullable
-  private String input;
+  String input;
 
   @Nonnull
   private final StringBuilder buffer = new StringBuilder();
@@ -92,7 +92,6 @@ final class EvalScanner {
     return c >= 'a' && c <= 'z'
         || c >= 'A' && c <= 'Z'
         || c == '_'
-        || c == '$'
         || c == '#';
   }
 
