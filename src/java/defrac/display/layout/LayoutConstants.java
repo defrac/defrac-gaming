@@ -10,6 +10,7 @@ import java.util.Set;
  */
 public final class LayoutConstants {
   @Nonnull public static final String KEY_TYPE = "type";
+  @Nonnull public static final String KEY_CONSTANTS = "constants";
   @Nonnull public static final String KEY_CHILDREN = "children";
   @Nonnull public static final String KEY_WIDTH = "width";
   @Nonnull public static final String KEY_HEIGHT = "height";

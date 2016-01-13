@@ -1,12 +1,13 @@
 package defrac.display.layout;
 
+import defrac.concurrent.Future;
+import defrac.concurrent.Futures;
 import defrac.display.BlendMode;
 import defrac.display.DisplayObject;
 import defrac.geom.Rectangle;
 import defrac.json.JSON;
-import defrac.json.JSONNumber;
 import defrac.json.JSONObject;
-import defrac.lang.Strings;
+import defrac.lang.Void;
 
 import javax.annotation.Nonnull;
 
@@ -15,20 +16,17 @@ import static defrac.display.layout.LayoutConstants.*;
 /**
  *
  */
-public abstract class LayoutObjectBuilder<D extends DisplayObject> {
-  @Nonnull
-  private static final JSONNumber NEGATIVE_ONE = JSONNumber.of(-1.0f);
-
-  LayoutObjectBuilder() {}
+public abstract class DisplayObjectInflater {
 
   @Nonnull
-  protected abstract D newInstance(@Nonnull final LayoutContext context,
-                                   final float width,
-                                   final float height);
+  protected abstract DisplayObject newInstance(@Nonnull final LayoutContext context,
+                                               final float width,
+                                               final float height);
 
-  protected void applyProperties(@Nonnull final LayoutContext context,
+  @Nonnull
+  protected Future<Void> inflate(@Nonnull final LayoutContext context,
                                  @Nonnull final JSONObject properties,
-                                 @Nonnull final D displayObject) {
+                                 @Nonnull final DisplayObject displayObject) {
     final float parentWidth = context.parentScope().width();
     final float parentHeight = context.parentScope().height();
 
@@ -94,50 +92,7 @@ public abstract class LayoutObjectBuilder<D extends DisplayObject> {
       final float height = context.resolvePercentage(parentHeight, context.resolveProperty(scrollRect, KEY_HEIGHT));
       displayObject.scrollRect(new Rectangle(x, y, width, height));
     }
-  }
 
-  @Nonnull
-  public D build(@Nonnull final LayoutContext context,
-                 @Nonnull final JSONObject properties) {
-    final JSON jsonWidth = context.resolveProperty(properties, KEY_WIDTH, NEGATIVE_ONE);
-    final JSON jsonHeight = context.resolveProperty(properties, KEY_HEIGHT, NEGATIVE_ONE);
-    final String id = context.resolveString(properties, KEY_ID);
-    final float parentWidth = context.parentScope().width();
-    final float parentHeight = context.parentScope().height();
-    final float width = context.resolvePercentage(parentWidth, jsonWidth);
-    final float height = context.resolvePercentage(parentHeight, jsonHeight);
-    final D displayObject = newInstance(context, width, height);
-
-    context.currentScope(displayObject);
-
-    if(!Strings.isNullOrEmpty(id)) {
-      context.storeDisplayObjectForId(id, displayObject);
-      displayObject.name(id);
-    }
-
-    applyProperties(context, properties, displayObject);
-
-    return displayObject;
-  }
-
-  public static class Functional<D extends DisplayObject> extends LayoutObjectBuilder<D> {
-    @Nonnull
-    private final Factory<D> factory;
-
-    public Functional(@Nonnull final Factory<D> factory) {
-      this.factory = factory;
-    }
-
-    @Nonnull
-    @Override
-    protected D newInstance(@Nonnull final LayoutContext context,
-                            final float width,
-                            final float height) {
-      return factory.newInstance(width, height);
-    }
-
-    public interface Factory<D> {
-      D newInstance(final float width, final float height);
-    }
+    return Futures.success(Void.INSTANCE);
   }
 }

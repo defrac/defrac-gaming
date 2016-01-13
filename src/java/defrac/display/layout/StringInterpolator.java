@@ -31,14 +31,18 @@ final class StringInterpolator {
             final char cc = input.charAt(i);
 
             if(cc == '}') {
-              result.append(variables.get(key.toString()));
+              final String constant = variables.get(key.toString());
+              if(constant == null) {
+                throw new LayoutException("Missing constant \""+key+"\" in \""+input+'"');
+              }
+              result.append(constant);
               continue outer;
             } else {
               key.append(cc);
             }
           }
 
-          throw new LayoutException("Missing \"}\" character");
+          throw new LayoutException("Missing \"}\" character in \""+input+'"');
         } else {
           result.append('$');
         }

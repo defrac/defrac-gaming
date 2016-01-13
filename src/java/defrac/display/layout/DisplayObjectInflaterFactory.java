@@ -1,9 +1,10 @@
 package defrac.display.layout;
 
+import defrac.concurrent.Future;
 import defrac.display.DisplayObject;
 import defrac.json.JSON;
 import defrac.json.JSONObject;
-import defrac.lang.Function;
+import defrac.lang.*;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Constructor;
@@ -14,13 +15,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * The DisplayObjectInflaterFactory creates DisplayObjectInflater objects at runtime
  *
+ * <p>The resulting instances created by this factory use reflection in order to
+ * instantiate and inflate the DisplayObject. While the DisplayObjectInflaterFactory takes
+ * good care to reduce reflection overhead to a minimum it is still worth considering to
+ * extend {@link DisplayObjectInflater} manually.
  */
-final class LayoutObjectBuilderFactory {
+final class DisplayObjectInflaterFactory {
   @Nonnull
   private final LayoutContext context;
 
-  public LayoutObjectBuilderFactory(@Nonnull final LayoutContext context) {
+  /**
+   * Creates and returns a new DisplayObjectInflaterFactory
+   *
+   * @param context The context this factory is bound to
+   */
+  public DisplayObjectInflaterFactory(@Nonnull final LayoutContext context) {
     this.context = context;
   }
 
@@ -35,7 +46,7 @@ final class LayoutObjectBuilderFactory {
    * @return The builder for the class
    */
   @Nonnull
-  public LayoutObjectBuilder<DisplayObject> newInstance(@Nonnull final String qname) {
+  public DisplayObjectInflater newInstance(@Nonnull final String qname) {
     final Class<?> klass;
 
     try {
@@ -45,10 +56,10 @@ final class LayoutObjectBuilderFactory {
     }
 
     final Constructor<?> constructor = findBestConstructor(klass);
-    final LayoutObjectBuilder<DisplayObject> newBuilder =
-        new ReflectingLayoutObjectBuilder(constructor, klass);
+    final DisplayObjectInflater newBuilder =
+        new ReflectingDisplayObjectInflater(constructor, klass);
 
-    context.registerBuilder(qname, newBuilder);
+    context.registerInflater(qname, newBuilder);
 
     return newBuilder;
   }
@@ -168,7 +179,7 @@ final class LayoutObjectBuilderFactory {
     return defaultConstructor;
   }
 
-  private class ReflectingLayoutObjectBuilder extends LayoutObjectBuilder<DisplayObject> {
+  private class ReflectingDisplayObjectInflater extends DisplayObjectInflater {
     private final boolean isArity2;
 
     @Nonnull
@@ -183,8 +194,8 @@ final class LayoutObjectBuilderFactory {
     @Nonnull
     private final JSONObject temp = new JSONObject();
 
-    public ReflectingLayoutObjectBuilder(@Nonnull final Constructor<?> constructor,
-                                         @Nonnull final Class<?> klass) {
+    public ReflectingDisplayObjectInflater(@Nonnull final Constructor<?> constructor,
+                                           @Nonnull final Class<?> klass) {
       this.isArity2 = constructor.getParameterTypes().length == 2;
       this.constructor = constructor;
       this.klass = klass;
@@ -220,12 +231,19 @@ final class LayoutObjectBuilderFactory {
       return result;
     }
 
+    @Nonnull
     @Override
-    protected void applyProperties(@Nonnull final LayoutContext context,
-                                   @Nonnull final JSONObject properties,
-                                   @Nonnull final DisplayObject displayObject) {
-      super.applyProperties(context, properties, displayObject);
+    protected Future<defrac.lang.Void> inflate(@Nonnull final LayoutContext context,
+                                               @Nonnull final JSONObject properties,
+                                               @Nonnull final DisplayObject displayObject) {
+      return
+          super.inflate(context, properties, displayObject).
+          proceed(theVoid -> applyPropertiesUsingReflection(context, properties, displayObject), context.dispatcher());
+    }
 
+    private void applyPropertiesUsingReflection(@Nonnull final LayoutContext context,
+                                                @Nonnull final JSONObject properties,
+                                                @Nonnull final DisplayObject displayObject) {
       for(final String property : properties.keySet()) {
         // we ignore all default properties and variant properties
         if(LayoutConstants.DEFAULT_PROPERTIES.contains(property) || context.isVariant(property)) {

@@ -1,7 +1,9 @@
 package defrac.display.layout;
 
+import defrac.concurrent.Dispatcher;
 import defrac.display.BlendMode;
 import defrac.display.DisplayObject;
+import defrac.display.layout.inflater.DefaultDisplayObjectInflaters;
 import defrac.json.JSON;
 import defrac.json.JSONObject;
 import defrac.json.JSONString;
@@ -20,24 +22,23 @@ import static defrac.display.layout.LayoutConstants.*;
  *
  */
 public class LayoutContext {
-
   @Nonnull
-  private final Dictionary<LayoutObjectBuilder<?>> builders = new Dictionary<>();
+  private final Dictionary<DisplayObjectInflater> inflaters = new Dictionary<>();
 
   @Nonnull
   private final Dictionary<DisplayObject> displayObjects = new Dictionary<>();
 
   @Nonnull
-  private final Dictionary<String> variables = new Dictionary<>();
+  private final Dictionary<String> constants = new Dictionary<>();
 
   @Nonnull
-  private final StringInterpolator stringInterpolator = new StringInterpolator(variables);
+  private final StringInterpolator stringInterpolator = new StringInterpolator(constants);
 
   @Nonnull
   private DisplayObject[] scopeStack = DisplayObject.ARRAY_FACTORY.create(256);
 
   @Nonnull
-  final LayoutObjectBuilderFactory builderFactory;
+  private final DisplayObjectInflaterFactory inflaterFactory;
 
   private int stackSize = 0;
 
@@ -47,8 +48,12 @@ public class LayoutContext {
   @Nonnull
   private final EvalParser parser = new EvalParser();
 
-  public LayoutContext() {
-    builderFactory = new LayoutObjectBuilderFactory(this);
+  @Nonnull
+  private final Dispatcher dispatcher;
+
+  public LayoutContext(@Nonnull final Dispatcher dispatcher) {
+    this.dispatcher = dispatcher;
+    this.inflaterFactory = new DisplayObjectInflaterFactory(this);
 
     initVariant();
     registerDefaultBuilders();
@@ -78,17 +83,17 @@ public class LayoutContext {
   }
 
   protected void registerDefaultBuilders() {
-    LayoutObjectBuilders.registerDefaults(this);
+    DefaultDisplayObjectInflaters.register(this);
   }
 
-  public void registerBuilder(@Nonnull final String type,
-                              @Nonnull final LayoutObjectBuilder<?> factory) {
-    builders.put(type, factory);
+  public void registerInflater(@Nonnull final String type,
+                               @Nonnull final DisplayObjectInflater factory) {
+    inflaters.put(type, factory);
   }
 
   public void defineConstant(@Nonnull final String symbol,
                              @Nonnull final String value) {
-    variables.put(symbol, value);
+    constants.put(symbol, value);
   }
 
   @Nullable
@@ -106,9 +111,20 @@ public class LayoutContext {
     }
   }
 
+  @Nonnull
+  public DisplayObjectInflater getOrCreateInflaterByType(@Nonnull final String type) {
+    final DisplayObjectInflater inflater = findInflaterByType(type);
+
+    if(inflater == null) {
+      return inflaterFactory.newInstance(type);
+    }
+
+    return inflater;
+  }
+
   @Nullable
-  public LayoutObjectBuilder<?> findBuilderByType(@Nonnull final String type) {
-    return builders.get(type);
+  public DisplayObjectInflater findInflaterByType(@Nonnull final String type) {
+    return inflaters.get(type);
   }
 
   final boolean isVariant(@Nonnull final String property) {
@@ -129,7 +145,7 @@ public class LayoutContext {
   }
 
   @Nullable
-  JSON resolveProperty(@Nonnull final JSONObject json, final String key) {
+  public JSON resolveProperty(@Nonnull final JSONObject json, final String key) {
     return resolveProperty(json, key, null);
   }
 
@@ -257,7 +273,7 @@ public class LayoutContext {
     }
   }
 
-  @Nullable
+  @Nonnull
   DisplayObject currentScope() {
     Preconditions.checkState(stackSize > 0);
     return scopeStack[stackSize - 1];
@@ -277,13 +293,13 @@ public class LayoutContext {
         DisplayObject.ARRAY_FACTORY);
   }
 
-  void currentScope(@Nonnull final DisplayObject displayObject) {
-    Preconditions.checkState(scopeStack[stackSize - 1] == null);
-    scopeStack[stackSize - 1] = displayObject;
-  }
-
   void popScope() {
     Preconditions.checkState(stackSize > 0);
     scopeStack[--stackSize] = null;
+  }
+
+  @Nonnull
+  public Dispatcher dispatcher() {
+    return dispatcher;
   }
 }
