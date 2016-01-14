@@ -18,6 +18,8 @@ import static defrac.display.layout.LayoutConstants.*;
  */
 public abstract class DisplayObjectInflater {
 
+  //TODO(joa): Change signature to Future<DisplayObject> newInstance
+  //TODO(joa): Add descriptor to signature
   @Nonnull
   protected abstract DisplayObject newInstance(@Nonnull final LayoutContext context,
                                                final float width,
@@ -27,8 +29,8 @@ public abstract class DisplayObjectInflater {
   protected Future<Void> inflate(@Nonnull final LayoutContext context,
                                  @Nonnull final JSONObject properties,
                                  @Nonnull final DisplayObject displayObject) {
-    final float parentWidth = context.parentScope().width();
-    final float parentHeight = context.parentScope().height();
+    final float parentWidth = context.parentScope().width;
+    final float parentHeight = context.parentScope().height;
 
     JSON property;
 

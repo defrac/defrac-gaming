@@ -1,9 +1,11 @@
 package defrac.display.layout;
 
+import defrac.concurrent.Dispatcher;
 import defrac.concurrent.Future;
 import defrac.concurrent.Futures;
 import defrac.display.DisplayObject;
 import defrac.display.DisplayObjectContainer;
+import defrac.display.Stage;
 import defrac.json.JSON;
 import defrac.json.JSONArray;
 import defrac.json.JSONNumber;
@@ -31,17 +33,35 @@ public final class LayoutInflater {
   }
 
   @Nonnull
-  public Future<Void> inflate(@Nonnull final DisplayObjectContainer root,
+  public Future<Void> inflate(@Nonnull final Stage stage,
                               @Nonnull final JSON layout) {
+    return inflate(stage, layout, stage, stage.width(), stage.height());
+  }
+
+  @Nonnull
+  public Future<Void> inflate(@Nonnull final Stage stage,
+                              @Nonnull final JSON layout,
+                              final float availableWidth,
+                              final float availableHeight) {
+    return inflate(stage, layout, stage, availableWidth, availableHeight);
+  }
+
+  public Future<Void> inflate(@Nonnull final DisplayObjectContainer root,
+                              @Nonnull final JSON layout,
+                              @Nonnull final Dispatcher dispatcher,
+                              final float availableWidth,
+                              final float availableHeight) {
     if(!layout.isObject()) {
       Futures.failure(new LayoutException("Given layout isn't a JSON object"));
     }
+
+    context.dispatcher(dispatcher);
 
     final JSONObject layoutObject = (JSONObject)layout;
 
     inflateConstants(layoutObject);
 
-    return inflateChildren(root, layoutObject);
+    return inflateChildren(root, layoutObject, availableWidth, availableHeight);
   }
 
   private void inflateConstants(final @Nonnull JSONObject layout) {
@@ -57,10 +77,12 @@ public final class LayoutInflater {
   }
   @Nonnull
   private Future<Void> inflateChildren(final @Nonnull DisplayObjectContainer root,
-                                       final @Nonnull JSONObject layout) {
+                                       final @Nonnull JSONObject layout,
+                                       final float availableWidth,
+                                       final float availableHeight) {
     // We push the root so that we get a valid parent width and
     // height for top-level children
-    context.pushScope(root);
+    context.pushScope(root, availableWidth, availableHeight);
 
     // We start inflating all the children which is an asynchronous process.
     final Future<Void> future = inflateDescriptors(root, rootChildren(layout));
@@ -200,9 +222,6 @@ public final class LayoutInflater {
     final DisplayObjectInflater inflater = context.getOrCreateInflaterByType(type);
     final DisplayObject displayObject = newDisplayObject(descriptor, inflater);
 
-    // Enter the scope of the DisplayObject
-    context.pushScope(displayObject);
-
     // Inflate the DisplayObject and its (potential) children
     final Future<Void> future =
         inflater.
@@ -315,8 +334,8 @@ public final class LayoutInflater {
 
     // The width and height of the current scope are the parent's dimension
     // for the new DisplayObject we're going to instantiate
-    final float parentWidth = context.currentScope().width();
-    final float parentHeight = context.currentScope().height();
+    final float parentWidth = context.currentScope().width;
+    final float parentHeight = context.currentScope().height;
 
     // The resulting width and height for the DisplayObject based on the parent's dimension
     final float width = context.resolvePercentage(parentWidth, jsonWidth);
@@ -325,8 +344,18 @@ public final class LayoutInflater {
     final DisplayObject displayObject = inflater.newInstance(context, width, height);
 
     if(!Strings.isNullOrEmpty(id)) {
-      context.storeDisplayObjectForId(id, displayObject);
+      context.storeDisplayObjectForId(id, displayObject, width, height);
       displayObject.name(id);
+    }
+
+    if(displayObject instanceof DisplayObjectContainer) {
+      // DisplayObjectContainer inherits the parent dimension if not
+      // explicitly specified.
+      final float inheritedOrDefinedWidth  = width  < 0 ? parentWidth  : width;
+      final float inheritedOrDefinedHeight = height < 0 ? parentHeight : height;
+      context.pushScope(displayObject, inheritedOrDefinedWidth, inheritedOrDefinedHeight);
+    } else {
+      context.pushScope(displayObject, width, height);
     }
 
     return displayObject;

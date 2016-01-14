@@ -91,8 +91,7 @@ final class EvalScanner {
   private boolean isIdentifierStart(final int c) {
     return c >= 'a' && c <= 'z'
         || c >= 'A' && c <= 'Z'
-        || c == '_'
-        || c == '#';
+        || c == '_';
   }
 
   private int identifier() {

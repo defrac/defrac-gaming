@@ -1,9 +1,12 @@
 package defrac.display.layout;
 
 import defrac.concurrent.Dispatcher;
+import defrac.concurrent.Dispatchers;
 import defrac.display.BlendMode;
 import defrac.display.DisplayObject;
+import defrac.display.DisplayObjectContainer;
 import defrac.display.layout.inflater.DefaultDisplayObjectInflaters;
+import defrac.geom.Rectangle;
 import defrac.json.JSON;
 import defrac.json.JSONObject;
 import defrac.json.JSONString;
@@ -23,10 +26,13 @@ import static defrac.display.layout.LayoutConstants.*;
  */
 public class LayoutContext {
   @Nonnull
+  private static final Rectangle RECTANGLE = new Rectangle();
+
+  @Nonnull
   private final Dictionary<DisplayObjectInflater> inflaters = new Dictionary<>();
 
   @Nonnull
-  private final Dictionary<DisplayObject> displayObjects = new Dictionary<>();
+  private final Dictionary<LayoutScope> displayObjects = new Dictionary<>();
 
   @Nonnull
   private final Dictionary<String> constants = new Dictionary<>();
@@ -35,7 +41,7 @@ public class LayoutContext {
   private final StringInterpolator stringInterpolator = new StringInterpolator(constants);
 
   @Nonnull
-  private DisplayObject[] scopeStack = DisplayObject.ARRAY_FACTORY.create(256);
+  private LayoutScope[] scopeStack = LayoutScope.ARRAY_FACTORY.create(256);
 
   @Nonnull
   private final DisplayObjectInflaterFactory inflaterFactory;
@@ -48,11 +54,9 @@ public class LayoutContext {
   @Nonnull
   private final EvalParser parser = new EvalParser();
 
-  @Nonnull
-  private final Dispatcher dispatcher;
+  private Dispatcher dispatcher = Dispatchers.FOREGROUND;
 
-  public LayoutContext(@Nonnull final Dispatcher dispatcher) {
-    this.dispatcher = dispatcher;
+  public LayoutContext() {
     this.inflaterFactory = new DisplayObjectInflaterFactory(this);
 
     initVariant();
@@ -98,15 +102,25 @@ public class LayoutContext {
 
   @Nullable
   public DisplayObject findDisplayObjectById(@Nonnull final String id) {
+    final LayoutScope scope = displayObjects.get(id);
+    return scope == null ? null : scope.displayObject;
+  }
+
+  @Nullable
+  LayoutScope findScopeById(@Nonnull final String id) {
     return displayObjects.get(id);
   }
 
   void storeDisplayObjectForId(@Nonnull final String identifier,
-                               @Nonnull final DisplayObject displayObject) {
+                               @Nonnull final DisplayObject displayObject,
+                               final float width, final float height) {
     Preconditions.checkArgument(!"parent".equals(identifier), "\"parent\" is a reserved identifier");
     Preconditions.checkArgument(!"this".equals(identifier), "\"this\" is a reserved identifier");
 
-    if(null != displayObjects.put(identifier, displayObject)) {
+    final LayoutScope scope = LayoutScope.create(displayObject, width, height);
+
+    if(null != displayObjects.put(identifier, scope)) {
+      scope.dispose();
       throw new LayoutException("Duplicate identifier \""+identifier+'"');
     }
   }
@@ -237,32 +251,30 @@ public class LayoutContext {
 
   float resolveField(@Nonnull final String receiver,
                      @Nonnull final String symbol) {
+    final LayoutScope scope;
     final DisplayObject displayObject;
 
     switch(receiver) {
-      case "this": displayObject = currentScope(); break;
-      case "parent": displayObject = parentScope(); break;
-      default:
-        if(receiver.charAt(0) == '#') {
-          displayObject = findDisplayObjectById(receiver.substring(1));
-        } else {
-          displayObject = findDisplayObjectById(receiver);
-        }
+      case "this": scope = currentScope(); break;
+      case "parent": scope = parentScope(); break;
+      default: scope = findScopeById(receiver);
     }
 
-    if(null == displayObject) {
+    if(null == scope) {
       throw new LayoutException("DisplayObject \""+receiver+"\" doesn't exist");
     }
 
+    displayObject = scope.displayObject;
+
     switch(symbol) {
-      case KEY_LEFT:
+      case KEY_TOP: return displayObject.aabb(RECTANGLE).top();
+      case KEY_RIGHT: return displayObject.aabb(RECTANGLE).right();
+      case KEY_BOTTOM: return displayObject.aabb(RECTANGLE).bottom();
+      case KEY_LEFT: return displayObject.aabb(RECTANGLE).left();
       case KEY_X: return displayObject.x();
-      case KEY_TOP:
       case KEY_Y: return displayObject.y();
-      case KEY_WIDTH: return displayObject.width();
-      case KEY_HEIGHT: return displayObject.height();
-      case KEY_RIGHT: return displayObject.x() + displayObject.width();
-      case KEY_BOTTOM: return displayObject.y() + displayObject.height();
+      case KEY_WIDTH: return displayObject instanceof DisplayObjectContainer ? scope.width : displayObject.width();
+      case KEY_HEIGHT: return displayObject instanceof DisplayObjectContainer ? scope.height : displayObject.height();
       case KEY_ALPHA: return displayObject.alpha();
       case KEY_SCALE_X: return displayObject.scaleX();
       case KEY_SCALE_Y: return displayObject.scaleY();
@@ -274,32 +286,39 @@ public class LayoutContext {
   }
 
   @Nonnull
-  DisplayObject currentScope() {
+  LayoutScope currentScope() {
     Preconditions.checkState(stackSize > 0);
     return scopeStack[stackSize - 1];
   }
 
   @Nonnull
-  DisplayObject parentScope() {
+  LayoutScope parentScope() {
     Preconditions.checkState(stackSize > 0);
     return scopeStack[stackSize - 2];
   }
 
-  void pushScope(@Nullable final DisplayObject displayObject) {
+  void pushScope(@Nonnull final DisplayObject displayObject,
+                 final float width,
+                 final float height) {
     scopeStack = ArrayUtil.append(
         scopeStack,
         stackSize++,
-        displayObject,
-        DisplayObject.ARRAY_FACTORY);
+        LayoutScope.createPooled(displayObject, width, height),
+        LayoutScope.ARRAY_FACTORY);
   }
 
   void popScope() {
     Preconditions.checkState(stackSize > 0);
-    scopeStack[--stackSize] = null;
+    scopeStack[--stackSize].dispose();
+    scopeStack[  stackSize] = null;
   }
 
   @Nonnull
   public Dispatcher dispatcher() {
     return dispatcher;
+  }
+
+  void dispatcher(@Nonnull final Dispatcher value) {
+    dispatcher = value;
   }
 }
