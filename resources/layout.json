@@ -1,0 +1,47 @@
+{
+  "children": [
+    {
+      "type": "defrac.display.Layer",
+      "children": [
+        {
+          "type": "defrac.display.Quad",
+          "id": "${definedInCode}",
+          "color": "red",
+          "width": 500,
+          "height": 500
+        },
+        {
+          "type": "defrac.display.Stats",
+          "right": "parent.width"
+        },
+        {
+          "type": "defrac.display.Quad",
+          "repeat": 3,
+          "color": "#ffffffff",
+          "color.web": "#f0f",
+          "alpha": 0.5,
+          "width": "${definedInCode}.width * 0.5 + foo.height",
+          "height": "50%",
+          "rotation": "PI * 0.1 * (${repeatIndex} / 2)",
+          "regX": "this.width * 0.5",
+          "regY": "this.height * 0.5",
+          "x": "50%",
+          "y": "50%"
+        }
+      ]
+    },
+    {
+      "type": "defrac.display.Quad",
+      "width": "50%",
+      "height": "50%",
+      "color": "${theColor}",
+      "regX": "this.width * 0.5",
+      "regY": "this.height * 0.5",
+      "x": "50%",
+      "y": "50%"
+    }
+  ],
+  "constants": {
+    "theColor": "#ff0"
+  }
+}
