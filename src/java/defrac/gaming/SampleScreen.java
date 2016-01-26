@@ -28,8 +28,8 @@ public final class SampleScreen extends Screen {
     layout.addView(displayList);
     rootView(layout);
 
-    displayList.onStageReady(LayoutSample::new);
-
+    //displayList.onStageReady(LayoutSample::new);
+    displayList.onStageReady(SpineRaptorSample::new);
   }
 
   @Override
