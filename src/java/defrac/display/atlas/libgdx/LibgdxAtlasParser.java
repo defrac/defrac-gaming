@@ -66,11 +66,13 @@ final class LibgdxAtlasParser {
 
     final Array<LibgdxAtlasPage> pages = new Array<>(1);
 
-    expect(T_LINETERMINATOR);
+    int token = nextToken();
+
+    if(token == T_LINETERMINATOR) {
+      token = nextToken();
+    }
 
     do {
-      final int token = nextToken();
-
       if(token == T_IDENTIFIER) {
         pages.push(parsePage());
       } else if(token == T_EOF) {
@@ -78,6 +80,8 @@ final class LibgdxAtlasParser {
       } else {
         unexpected(token);
       }
+
+      token = nextToken();
     } while(true);
   }
 
@@ -117,7 +121,7 @@ final class LibgdxAtlasParser {
     }
 
     do {
-      token = nextToken();
+      token = nextTokenGenerous();
 
       if(token == T_LINETERMINATOR || token == T_EOF) {
         break;
@@ -301,6 +305,16 @@ final class LibgdxAtlasParser {
 
     do {
       actualToken = scanner.nextToken();
+    } while(actualToken == T_WHITESPACE);
+
+    return actualToken;
+  }
+
+  private int nextTokenGenerous() {
+    int actualToken;
+
+    do {
+      actualToken = scanner.nextTokenGenerous();
     } while(actualToken == T_WHITESPACE);
 
     return actualToken;

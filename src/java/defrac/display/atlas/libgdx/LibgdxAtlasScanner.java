@@ -47,6 +47,8 @@ final class LibgdxAtlasScanner {
 
   protected int column;
 
+  private boolean generousIdentifierMode = false;
+
   private LibgdxAtlasScanner(@Nonnull final Reader reader) {
     this.in = reader;
   }
@@ -62,6 +64,15 @@ final class LibgdxAtlasScanner {
   @Nonnull
   public final String stringValue() {
     return new String(valueBuffer, 0, valueBufferIndex);
+  }
+
+  public int nextTokenGenerous() {
+    try {
+      generousIdentifierMode = true;
+      return nextToken();
+    } finally {
+      generousIdentifierMode = false;
+    }
   }
 
   public int nextToken() {
@@ -151,11 +162,11 @@ final class LibgdxAtlasScanner {
   }
 
   protected final boolean isIdentifierStart(final int c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '.' || c == '/' || c == '\\';
+    return (generousIdentifierMode && !isWhitespace(c) && !isLineTerminator(c)) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '.' || c == '/' || c == '\\';
   }
 
   protected final boolean isIdentifierPart(final int c) {
-    return isIdentifierStart(c) || (c >= '0' && c <= '9') || c == '-';
+    return (generousIdentifierMode && !isWhitespace(c) && !isLineTerminator(c)) || isIdentifierStart(c) || (c >= '0' && c <= '9') || c == '-';
   }
 
   protected final boolean isWhitespace(final int c) {
