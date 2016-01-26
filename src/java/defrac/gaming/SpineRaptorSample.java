@@ -30,7 +30,7 @@ public final class SpineRaptorSample {
     final Future<TextureAtlas> atlasFuture =
         LibgdxTextureAtlasResource.from(
             "raptor/raptor.atlas",
-            TextureDataSupplies.resource("raptor/")
+            TextureDataSupplies.premultipliedResource("raptor/")
         ).load();
 
     final Future<JSON> jsonFuture =
