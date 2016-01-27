@@ -5,7 +5,7 @@ import defrac.ui.*;
 /**
  *
  */
-public final class SampleScreen extends Screen {
+public final class SampleScreen extends ContentScreen {
   private DisplayList displayList;
 
   @Override
