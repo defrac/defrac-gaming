@@ -1,46 +1,67 @@
 package defrac.gaming;
 
+import defrac.lang.Lazy;
+import defrac.lang.Supplier;
 import defrac.ui.*;
+
+import javax.annotation.Nonnull;
 
 /**
  *
  */
 public final class SampleScreen extends ContentScreen {
-  private DisplayList displayList;
+  @Nonnull
+  private static final Sample[] SAMPLES = {
+      new Sample("Spine Raptor", SpineRaptorSample::new),
+      new Sample("Layout", LayoutSample::new),
+  };
+
+  public SampleScreen() {}
 
   @Override
   protected void onCreate() {
     super.onCreate();
 
-    final LinearLayout layout =
-        LinearLayout.horizontal().gravity(Gravity.CENTER);
+    final LinearLayout layout = LinearLayout.vertical().gravity(Gravity.CENTER);
+    final LayoutConstraints layoutConstraints =
+        new LinearLayout.LayoutConstraints(200, LayoutConstraints.WRAP_CONTENT, PixelUnits.LP).
+            marginTop(8, PixelUnits.LP);
 
-    final LinearLayout.LayoutConstraints layoutConstraints =
-        new LinearLayout.LayoutConstraints();
+    title("defrac Gaming");
 
-    layoutConstraints.width(800, PixelUnits.LP);
-    layoutConstraints.height(600, PixelUnits.LP);
-    layoutConstraints.gravity = Gravity.CENTER;
+    layout.addView(
+        new Label().text("Gaming Samples"));
 
-    displayList = new DisplayList();
-    displayList.layoutConstraints(layoutConstraints);
+    for(final Sample sample : SAMPLES) {
+      final Button button = new Button();
 
-    layout.addView(displayList);
+      button.layoutConstraints(layoutConstraints);
+      button.text(sample.name);
+      button.clickListener(sender -> {
+        pushScreen(sample.screen.get());
+        return false;
+      });
+
+      layout.addView(button);
+    }
+
     rootView(layout);
-
-    //displayList.onStageReady(LayoutSample::new);
-    displayList.onStageReady(SpineRaptorSample::new);
   }
 
-  @Override
-  protected void onPause() {
-    super.onPause();
-    displayList.onPause();
-  }
+  private static class Sample {
+    @Nonnull public final String name;
+    @Nonnull public final Lazy<Screen> screen;
 
-  @Override
-  protected void onResume() {
-    super.onResume();
-    displayList.onResume();
+    Sample(@Nonnull final String name,
+           @Nonnull final Supplier<Screen> screen) {
+      this.name = name;
+      this.screen = new Lazy.Value<Screen>() {
+        @Nonnull
+        @Override
+        protected Screen computeValue() {
+          return screen.get();
+        }
+      };
+    }
   }
 }

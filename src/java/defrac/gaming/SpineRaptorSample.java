@@ -20,13 +20,9 @@ import javax.annotation.Nonnull;
 /**
  *
  */
-public final class SpineRaptorSample {
-  @Nonnull
-  private final Stage stage;
-
-  public SpineRaptorSample(@Nonnull final Stage stage) {
-    this.stage = stage;
-
+public final class SpineRaptorSample extends DisplayListScreen {
+  @Override
+  protected void initWithStage(@Nonnull final Stage stage) {
     final Future<TextureAtlas> atlasFuture =
         LibgdxTextureAtlasResource.from(
             "raptor/raptor.atlas",
@@ -53,9 +49,9 @@ public final class SpineRaptorSample {
   private void init(final SkeletonData skeletonData) {
     final SpineSkeleton skeleton = new SpineSkeleton(skeletonData);
 
-    stage.
-        addChild(skeleton).
-        moveTo(350, 550);
+    stage.addChild(skeleton);
+    skeleton.registrationPoint(20, -250);
+    skeleton.moveTo(stage.width() * 0.5f, stage.height() * 0.5f);
 
     // Defines mixing (crossfading) between animations.
     AnimationStateData stateData = new AnimationStateData(skeletonData);
@@ -63,14 +59,12 @@ public final class SpineRaptorSample {
     // Holds the animation state for a skeleton (current animation, time, etc).
     AnimationState state = new AnimationState(stateData);
 
-    // Slow all animations down to 60% speed.
-    state.timeScale(0.6f);
-
     // Queue animations on tracks 0 and 1.
     state.setAnimation(0, "walk", true);
     state.setAnimation(1, "empty", false);
     state.addAnimation(1, "gungrab", false, 2);
 
+    stage.globalEvents().onResize.add(e -> skeleton.moveTo(e.width * 0.5f, e.height * 0.5f));
     stage.animationSystem().add(skeleton.animatable(state));
   }
 }

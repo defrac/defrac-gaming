@@ -12,14 +12,14 @@ import javax.annotation.Nonnull;
 /**
  *
  */
-public final class LayoutSample {
-  public LayoutSample(@Nonnull final Stage stage) {
+public final class LayoutSample extends DisplayListScreen {
+  @Override
+  protected void initWithStage(@Nonnull final Stage stage) {
     JSON.parse(StringResource.from("layout.json")).
         onSuccess(json -> {
           LayoutContext context = new LayoutContext();
           context.defineConstant("definedInCode", "foo");
           new LayoutInflater(context).inflate(stage, json).
-              onSuccess(theVoid -> System.out.println("--- Layout Ready ---")).
               onFailure(Procedures.printStackTrace());
         });
   }

@@ -3,6 +3,7 @@ package defrac.gaming;
 import defrac.app.ScreenAppDelegate;
 import defrac.ios.uikit.UIKit;
 import defrac.ui.Screen;
+import defrac.ui.ScreenStack;
 
 import javax.annotation.Nonnull;
 
@@ -18,6 +19,6 @@ public final class Main extends ScreenAppDelegate {
   @Nonnull
   @Override
   protected Screen createScreen() {
-    return new SampleScreen();
+    return new ScreenStack(new SampleScreen());
   }
 }

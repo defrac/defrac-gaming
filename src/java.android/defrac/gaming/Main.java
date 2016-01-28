@@ -7,6 +7,7 @@ import defrac.dni.IntentFilter;
 import defrac.dni.UsesSdk;
 import defrac.ui.Screen;
 import defrac.ui.ScreenActivity;
+import defrac.ui.ScreenStack;
 
 import javax.annotation.Nonnull;
 
@@ -16,6 +17,6 @@ public final class Main extends ScreenActivity {
   @Override
   @Nonnull
   protected Screen createScreen() {
-    return new SampleScreen();
+    return new ScreenStack(new SampleScreen());
   }
 }
